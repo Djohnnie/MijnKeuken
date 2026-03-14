@@ -1,0 +1,62 @@
+@using MijnKeuken.Domain.Entities
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="Name" Label="Naam" Required="true"
+                      RequiredError="Naam is verplicht" Variant="Variant.Outlined"
+                      Immediate="true" Class="mb-3" Margin="Margin.Dense" />
+
+        <MudSelect T="TagType" @bind-Value="Type" Label="Type" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Class="mb-3">
+            <MudSelectItem T="TagType" Value="TagType.Ingredient">Ingrediënt</MudSelectItem>
+            <MudSelectItem T="TagType" Value="TagType.Recipe">Recept</MudSelectItem>
+            <MudSelectItem T="TagType" Value="TagType.Meal">Maaltijd</MudSelectItem>
+        </MudSelect>
+
+        <MudColorPicker @bind-Value="_colorValue" Label="Kleur" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" Class="mb-3"
+                        ColorPickerMode="ColorPickerMode.HEX" />
+
+        @if (!string.IsNullOrEmpty(Name))
+        {
+            <MudText Typo="Typo.body2" Class="mb-1">Voorbeeld:</MudText>
+            <MudChip T="string" Size="Size.Small" Style="@($"background:{TagColor};color:white;")">
+                @Name
+            </MudChip>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Size="Size.Small">Annuleren</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                   OnClick="Submit" Disabled="string.IsNullOrWhiteSpace(Name)">
+            @(IsEdit ? "Opslaan" : "Aanmaken")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter] public TagType Type { get; set; }
+    [Parameter] public string TagColor { get; set; } = "#1976d2";
+
+    private MudBlazor.Utilities.MudColor _colorValue = new("#1976d2");
+
+    protected override void OnParametersSet()
+    {
+        _colorValue = new MudBlazor.Utilities.MudColor(TagColor);
+    }
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(new TagFormResult(Name.Trim(), Type, _colorValue.ToString(MudBlazor.Utilities.MudColorOutputFormats.Hex))));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public record TagFormResult(string Name, TagType Type, string Color);
+}

@@ -1,0 +1,189 @@
+@page "/tags"
+@using MijnKeuken.Application.Tags.DTOs
+@using MijnKeuken.Domain.Entities
+@using MijnKeuken.Web.Services
+@inject ITagService TagService
+@inject IDialogService DialogService
+
+<PageTitle>Tags</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h4">Tags</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
+            Nieuwe tag
+        </MudButton>
+    </MudStack>
+
+    @if (_tags is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else
+    {
+        <MudStack Row="true" Spacing="2" Class="mb-3">
+            <MudTextField T="string" @bind-Value="_searchString" Placeholder="Zoeken op naam..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                          IconSize="Size.Small" Immediate="true" Margin="Margin.Dense"
+                          Variant="Variant.Outlined" Style="max-width:300px;" />
+            <MudSelect T="TagType?" @bind-Value="_typeFilter" Label="Type" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" Style="max-width:200px;">
+                <MudSelectItem T="TagType?" Value="@((TagType?)TagType.Ingredient)">Ingrediënt</MudSelectItem>
+                <MudSelectItem T="TagType?" Value="@((TagType?)TagType.Recipe)">Recept</MudSelectItem>
+                <MudSelectItem T="TagType?" Value="@((TagType?)TagType.Meal)">Maaltijd</MudSelectItem>
+            </MudSelect>
+        </MudStack>
+
+        <MudTable Items="@FilteredTags" Hover="true" Dense="true" Elevation="0" Class="border-table">
+            <HeaderContent>
+                <MudTh>Naam</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Kleur</MudTh>
+                <MudTh>Voorbeeld</MudTh>
+                <MudTh Style="width:150px;">Acties</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Naam">@context.Name</MudTd>
+                <MudTd DataLabel="Type">@GetTypeLabel(context.Type)</MudTd>
+                <MudTd DataLabel="Kleur">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <div style="width:16px;height:16px;border-radius:3px;background:@context.Color;" />
+                        <MudText Typo="Typo.body2">@context.Color</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Voorbeeld">
+                    <MudChip T="string" Size="Size.Small" Style="@($"background:{context.Color};color:white;")">
+                        @context.Name
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="() => OpenEditDialog(context)" />
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="() => ConfirmDelete(context)" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" RowsPerPageString="Rijen per pagina:" />
+            </PagerContent>
+        </MudTable>
+    }
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private List<TagDto>? _tags;
+    private string _searchString = string.Empty;
+    private TagType? _typeFilter;
+    private string? _errorMessage;
+
+    private IEnumerable<TagDto> FilteredTags => _tags?.Where(FilterFunc) ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTags();
+    }
+
+    private async Task LoadTags()
+    {
+        _tags = await TagService.GetAllAsync();
+    }
+
+    private bool FilterFunc(TagDto tag)
+    {
+        if (_typeFilter.HasValue && tag.Type != _typeFilter.Value)
+            return false;
+        if (!string.IsNullOrWhiteSpace(_searchString)
+            && !tag.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return false;
+        return true;
+    }
+
+    private static string GetTypeLabel(TagType type) => type switch
+    {
+        TagType.Ingredient => "Ingrediënt",
+        TagType.Recipe => "Recept",
+        TagType.Meal => "Maaltijd",
+        _ => type.ToString()
+    };
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<TagDialog>
+        {
+            { x => x.IsEdit, false },
+            { x => x.Name, string.Empty },
+            { x => x.Type, TagType.Ingredient },
+            { x => x.TagColor, "#1976d2" }
+        };
+
+        var dialog = await DialogService.ShowAsync<TagDialog>("Nieuwe tag", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: TagDialog.TagFormResult formResult })
+        {
+            _errorMessage = null;
+            var createResult = await TagService.CreateAsync(formResult.Name, formResult.Type, formResult.Color);
+            if (createResult.IsSuccess)
+                await LoadTags();
+            else
+                _errorMessage = createResult.Error;
+        }
+    }
+
+    private async Task OpenEditDialog(TagDto tag)
+    {
+        var parameters = new DialogParameters<TagDialog>
+        {
+            { x => x.IsEdit, true },
+            { x => x.Name, tag.Name },
+            { x => x.Type, tag.Type },
+            { x => x.TagColor, tag.Color }
+        };
+
+        var dialog = await DialogService.ShowAsync<TagDialog>("Tag bewerken", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: TagDialog.TagFormResult formResult })
+        {
+            _errorMessage = null;
+            var updateResult = await TagService.UpdateAsync(tag.Id, formResult.Name, formResult.Type, formResult.Color);
+            if (updateResult.IsSuccess)
+                await LoadTags();
+            else
+                _errorMessage = updateResult.Error;
+        }
+    }
+
+    private async Task ConfirmDelete(TagDto tag)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Weet je zeker dat je de tag \"{tag.Name}\" wilt verwijderen?" },
+            { x => x.ConfirmText, "Verwijderen" },
+            { x => x.ConfirmColor, Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Tag verwijderen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _errorMessage = null;
+            var deleteResult = await TagService.DeleteAsync(tag.Id);
+            if (deleteResult.IsSuccess)
+                await LoadTags();
+            else
+                _errorMessage = deleteResult.Error;
+        }
+    }
+}

@@ -60,7 +60,7 @@ public class WebAppFixture
 
         // Clear existing users so the seed user will be the first (auto-approved)
         if (!string.IsNullOrEmpty(connectionString))
-            await ClearUsersTableAsync(connectionString);
+            await ClearTablesAsync(connectionString);
 
         _serverProcess = new Process
         {
@@ -154,17 +154,20 @@ public class WebAppFixture
     }
 
     /// <summary>
-    /// Clears the Users table so the next registered user will be auto-approved.
-    /// Safe to call even if the table doesn't exist yet (migrations haven't run).
+    /// Clears the Users and Tags tables so tests start with a clean state.
+    /// Safe to call even if the tables don't exist yet (migrations haven't run).
     /// </summary>
-    private static async Task ClearUsersTableAsync(string connectionString)
+    private static async Task ClearTablesAsync(string connectionString)
     {
         try
         {
             await using var conn = new SqlConnection(connectionString);
             await conn.OpenAsync();
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "IF OBJECT_ID('Users', 'U') IS NOT NULL DELETE FROM Users";
+            cmd.CommandText = """
+                IF OBJECT_ID('Tags', 'U') IS NOT NULL DELETE FROM Tags;
+                IF OBJECT_ID('Users', 'U') IS NOT NULL DELETE FROM Users;
+                """;
             await cmd.ExecuteNonQueryAsync();
         }
         catch

@@ -39,8 +39,7 @@ public class NavigationTests : PlaywrightTestBase
         await page.WaitForTimeoutAsync(500);
 
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Dashboard" }).IsVisibleAsync(), Is.True);
-        Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Counter" }).IsVisibleAsync(), Is.True);
-        Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Weer" }).IsVisibleAsync(), Is.True);
+        Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Tags" }).IsVisibleAsync(), Is.True);
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Gebruikers" }).IsVisibleAsync(), Is.True);
     }
 
@@ -56,44 +55,6 @@ public class NavigationTests : PlaywrightTestBase
         // Top bar should contain the app title
         var appTitle = page.Locator(".mud-appbar").GetByText("MijnKeuken");
         Assert.That(await appTitle.IsVisibleAsync(), Is.True);
-    }
-
-    /// <summary>
-    /// Clicking the Counter link should navigate to the counter page.
-    /// </summary>
-    [Test]
-    public async Task NavigateToCounter_ShowsCounterPage()
-    {
-        await using var context = await CreateContextAsync();
-        var page = await LoginAsSeedUserAsync(context);
-
-        // Hover mini drawer to expand, then click Counter link
-        await page.Locator(".mud-drawer").HoverAsync();
-        await page.WaitForTimeoutAsync(500);
-        await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Counter" }).ClickAsync();
-
-        var counterTitle = page.GetByText("Counter").First;
-        await counterTitle.WaitForAsync(new() { Timeout = 10000 });
-        Assert.That(await counterTitle.IsVisibleAsync(), Is.True);
-    }
-
-    /// <summary>
-    /// Clicking the Weer link should navigate to the weather page.
-    /// </summary>
-    [Test]
-    public async Task NavigateToWeather_ShowsWeatherPage()
-    {
-        await using var context = await CreateContextAsync();
-        var page = await LoginAsSeedUserAsync(context);
-
-        // Hover mini drawer to expand, then click Weer link
-        await page.Locator(".mud-drawer").HoverAsync();
-        await page.WaitForTimeoutAsync(500);
-        await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Weer" }).ClickAsync();
-
-        var weatherTitle = page.GetByText("Weer").First;
-        await weatherTitle.WaitForAsync(new() { Timeout = 10000 });
-        Assert.That(await weatherTitle.IsVisibleAsync(), Is.True);
     }
 
     /// <summary>

@@ -49,6 +49,7 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 var app = builder.Build();
 

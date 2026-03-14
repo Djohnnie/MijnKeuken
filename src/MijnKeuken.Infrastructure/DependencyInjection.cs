@@ -18,6 +18,7 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ITagRepository, TagRepository>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")

@@ -7,10 +7,12 @@ namespace MijnKeuken.Infrastructure.Persistence;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<Tag> Tags => Set<Tag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureBaseEntity<User>(modelBuilder);
+        ConfigureBaseEntity<Tag>(modelBuilder);
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -18,6 +20,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(u => u.Username).HasMaxLength(100).IsRequired();
             entity.Property(u => u.PasswordHash).IsRequired();
             entity.Property(u => u.Email).HasMaxLength(256).IsRequired();
+        });
+
+        modelBuilder.Entity<Tag>(entity =>
+        {
+            entity.HasIndex(t => new { t.Name, t.Type }).IsUnique();
+            entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
+            entity.Property(t => t.Color).HasMaxLength(9).IsRequired();
+            entity.Property(t => t.Type).HasConversion<string>().HasMaxLength(20);
         });
     }
 
