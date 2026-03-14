@@ -5,4 +5,7 @@
     <Project Path="src/MijnKeuken.Infrastructure/MijnKeuken.Infrastructure.csproj" />
     <Project Path="src/MijnKeuken.Web/MijnKeuken.Web.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MijnKeuken.Application.Tests/MijnKeuken.Application.Tests.csproj" />
+  </Folder>
 </Solution>

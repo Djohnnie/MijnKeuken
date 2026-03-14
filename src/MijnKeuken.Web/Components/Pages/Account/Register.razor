@@ -1,0 +1,106 @@
+@page "/account/register"
+@layout AuthLayout
+@using MijnKeuken.Web.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Registreren</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small">
+    <MudPaper Class="pa-6 mt-8" Elevation="3">
+        <MudText Typo="Typo.h4" GutterBottom="true">Registreren</MudText>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_errorMessage</MudAlert>
+        }
+
+        @if (_registered)
+        {
+            <MudAlert Severity="Severity.Success" Class="mb-4">
+                Registratie geslaagd! @_successMessage
+            </MudAlert>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                       Href="/account/login">
+                Naar inloggen
+            </MudButton>
+        }
+        else
+        {
+            <EditForm Model="@this" OnSubmit="HandleRegister" FormName="registerForm">
+                <MudTextField T="string" @bind-Value="_username" Label="Gebruikersnaam"
+                              Required="true" RequiredError="Gebruikersnaam is verplicht"
+                              Variant="Variant.Outlined" Class="mb-4" />
+
+                <MudTextField T="string" @bind-Value="_email" Label="E-mailadres"
+                              InputType="InputType.Email"
+                              Required="true" RequiredError="E-mailadres is verplicht"
+                              Variant="Variant.Outlined" Class="mb-4" />
+
+                <MudTextField T="string" @bind-Value="_password" Label="Wachtwoord"
+                              InputType="InputType.Password"
+                              Required="true" RequiredError="Wachtwoord is verplicht"
+                              Variant="Variant.Outlined" Class="mb-4" />
+
+                <MudTextField T="string" @bind-Value="_confirmPassword" Label="Wachtwoord bevestigen"
+                              InputType="InputType.Password"
+                              Required="true" RequiredError="Bevestiging is verplicht"
+                              Variant="Variant.Outlined" Class="mb-4" />
+
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                           FullWidth="true" Disabled="_isLoading">
+                    @if (_isLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Registreren
+                </MudButton>
+            </EditForm>
+
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+                Al een account? <MudLink Href="/account/login">Inloggen</MudLink>
+            </MudText>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _username = string.Empty;
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string _confirmPassword = string.Empty;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private bool _isLoading;
+    private bool _registered;
+
+    private async Task HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_email)
+            || string.IsNullOrWhiteSpace(_password) || string.IsNullOrWhiteSpace(_confirmPassword))
+            return;
+
+        if (_password != _confirmPassword)
+        {
+            _errorMessage = "Wachtwoorden komen niet overeen.";
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        var result = await AuthService.RegisterAsync(_username, _password, _email);
+
+        if (result.IsSuccess)
+        {
+            _registered = true;
+            _successMessage = "U kunt nu inloggen of wacht op goedkeuring van een beheerder.";
+        }
+        else
+        {
+            _errorMessage = result.Error;
+        }
+
+        _isLoading = false;
+    }
+}

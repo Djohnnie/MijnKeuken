@@ -1,0 +1,62 @@
+@page "/account/profile"
+@using MijnKeuken.Application.Users.DTOs
+@using MijnKeuken.Web.Auth
+@using MijnKeuken.Web.Services
+@inject IUserService UserService
+@inject JwtAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Profiel</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    @if (_profile is null && _errorMessage is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-8" />
+    }
+    else if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-8">@_errorMessage</MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-6 mt-8" Elevation="3">
+            <MudText Typo="Typo.h4" GutterBottom="true">Mijn profiel</MudText>
+
+            <MudList T="string">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Person">
+                    <MudText><strong>Gebruikersnaam:</strong> @_profile!.Username</MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Email">
+                    <MudText><strong>E-mail:</strong> @_profile.Email</MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                    <MudText><strong>Status:</strong> @(_profile.IsApproved ? "Goedgekeurd" : "Wacht op goedkeuring")</MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CalendarToday">
+                    <MudText><strong>Geregistreerd:</strong> @_profile.CreatedAt.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</MudText>
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private UserProfileDto? _profile;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = AuthStateProvider.GetCurrentUserId();
+        if (userId is null)
+        {
+            Navigation.NavigateTo("/account/login");
+            return;
+        }
+
+        var result = await UserService.GetProfileAsync();
+        if (result.IsSuccess)
+            _profile = result.Value;
+        else
+            _errorMessage = result.Error;
+    }
+}

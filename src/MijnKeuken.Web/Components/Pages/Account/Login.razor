@@ -1,0 +1,74 @@
+@page "/account/login"
+@layout AuthLayout
+@using MijnKeuken.Web.Auth
+@using MijnKeuken.Web.Services
+@inject IAuthService AuthService
+@inject JwtAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Inloggen</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small">
+    <MudPaper Class="pa-6 mt-8" Elevation="3">
+        <MudText Typo="Typo.h4" GutterBottom="true">Inloggen</MudText>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_errorMessage</MudAlert>
+        }
+
+        <EditForm Model="@this" OnSubmit="HandleLogin" FormName="loginForm">
+            <MudTextField T="string" @bind-Value="_username" Label="Gebruikersnaam"
+                          Required="true" RequiredError="Gebruikersnaam is verplicht"
+                          Variant="Variant.Outlined" Class="mb-4" />
+
+            <MudTextField T="string" @bind-Value="_password" Label="Wachtwoord"
+                          InputType="InputType.Password"
+                          Required="true" RequiredError="Wachtwoord is verplicht"
+                          Variant="Variant.Outlined" Class="mb-4" />
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Disabled="_isLoading">
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Inloggen
+            </MudButton>
+        </EditForm>
+
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+            Geen account? <MudLink Href="/account/register">Registreren</MudLink>
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _username = string.Empty;
+    private string _password = string.Empty;
+    private string? _errorMessage;
+    private bool _isLoading;
+
+    private async Task HandleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_password))
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        var result = await AuthService.LoginAsync(_username, _password);
+
+        if (result.IsSuccess)
+        {
+            AuthStateProvider.SetToken(result.Value!);
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            _errorMessage = result.Error;
+        }
+
+        _isLoading = false;
+    }
+}

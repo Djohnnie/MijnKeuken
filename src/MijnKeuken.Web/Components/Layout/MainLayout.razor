@@ -1,29 +1,44 @@
 ﻿@inherits LayoutComponentBase
+@using MijnKeuken.Web.Auth
+@inject JwtAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                       OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h5" Class="ml-3">MijnKeuken</MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
-    </MudAppBar>
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            <MudLayout>
+                <MudAppBar Elevation="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                                   OnClick="@ToggleDrawer" />
+                    <MudText Typo="Typo.h5" Class="ml-3">MijnKeuken</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit"
+                                   Href="/account/profile" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
+                                   OnClick="HandleLogout" />
+                </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
-    </MudDrawer>
+                <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+                    <NavMenu />
+                </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
-            @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
+                <MudMainContent>
+                    <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+                        @Body
+                    </MudContainer>
+                </MudMainContent>
+            </MudLayout>
+        </Authorized>
+        <NotAuthorized>
+            <RedirectToLogin />
+        </NotAuthorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
 
 @code {
     private bool _drawerOpen = true;
@@ -31,5 +46,11 @@
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
+    }
+
+    private void HandleLogout()
+    {
+        AuthStateProvider.ClearToken();
+        Navigation.NavigateTo("/account/login");
     }
 }

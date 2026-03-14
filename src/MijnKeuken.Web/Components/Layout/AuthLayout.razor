@@ -1,0 +1,19 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudText Typo="Typo.h5" Class="ml-3">MijnKeuken</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Login" Color="Color.Inherit"
+                       Href="/account/login" />
+    </MudAppBar>
+
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>

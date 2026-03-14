@@ -1,0 +1,106 @@
+@page "/users"
+@using MijnKeuken.Application.Users.DTOs
+@using MijnKeuken.Web.Services
+@inject IUserService UserService
+
+<PageTitle>Gebruikers</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mt-4">Gebruikers</MudText>
+
+    @if (_users is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+    }
+    else
+    {
+        <MudTable Items="@_users" Hover="true" Striped="true" Elevation="2" Class="mt-4"
+                  Filter="new Func<UserListItemDto, bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudTextField T="string" @bind-Value="_searchString" Placeholder="Zoeken..."
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              IconSize="Size.Medium" Immediate="true" Class="mt-0" />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Gebruikersnaam</MudTh>
+                <MudTh>E-mail</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Geregistreerd</MudTh>
+                <MudTh>Actie</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Gebruikersnaam">@context.Username</MudTd>
+                <MudTd DataLabel="E-mail">@context.Email</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (context.IsApproved)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Goedgekeurd</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">Wachtend</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Geregistreerd">@context.CreatedAt.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</MudTd>
+                <MudTd>
+                    @if (!context.IsApproved)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                   OnClick="() => ApproveUser(context.Id)" Disabled="_approvingId == context.Id">
+                            @if (_approvingId == context.Id)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                            }
+                            Goedkeuren
+                        </MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@_errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private List<UserListItemDto>? _users;
+    private string _searchString = string.Empty;
+    private string? _errorMessage;
+    private Guid? _approvingId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        _users = await UserService.GetAllUsersAsync();
+    }
+
+    private bool FilterFunc(UserListItemDto user)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        return user.Username.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+            || user.Email.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task ApproveUser(Guid userId)
+    {
+        _approvingId = userId;
+        _errorMessage = null;
+
+        var result = await UserService.ApproveUserAsync(userId);
+        if (result.IsSuccess)
+            await LoadUsers();
+        else
+            _errorMessage = result.Error;
+
+        _approvingId = null;
+    }
+}
