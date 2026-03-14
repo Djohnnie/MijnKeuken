@@ -47,6 +47,9 @@ public class DarkModeTests : PlaywrightTestBase
         await using var context = await CreateContextAsync();
         var page = await LoginAsSeedUserAsync(context);
 
+        // Wait for theme preference to load from profile
+        await page.WaitForTimeoutAsync(2000);
+
         // Capture background color before toggle
         var bgBefore = await page.EvaluateAsync<string>(
             "window.getComputedStyle(document.body).backgroundColor");
@@ -63,13 +66,16 @@ public class DarkModeTests : PlaywrightTestBase
     }
 
     /// <summary>
-    /// Clicking the toggle twice should return to the original light theme.
+    /// Clicking the toggle twice should return to the original theme.
     /// </summary>
     [Test]
-    public async Task ClickingToggleTwice_ReturnsToLightMode()
+    public async Task ClickingToggleTwice_ReturnsToOriginalMode()
     {
         await using var context = await CreateContextAsync();
         var page = await LoginAsSeedUserAsync(context);
+
+        // Wait for theme preference to load from profile
+        await page.WaitForTimeoutAsync(2000);
 
         var bgOriginal = await page.EvaluateAsync<string>(
             "window.getComputedStyle(document.body).backgroundColor");

@@ -64,7 +64,7 @@
 
         if (result.IsSuccess)
         {
-            AuthStateProvider.SetToken(result.Value!);
+            await AuthStateProvider.SetTokenAsync(result.Value!);
             Navigation.NavigateTo("/");
         }
         else

@@ -50,7 +50,14 @@
             </MudLayout>
         </Authorized>
         <NotAuthorized>
-            <RedirectToLogin />
+            @if (_initialized)
+            {
+                <RedirectToLogin />
+            }
+            else
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
         </NotAuthorized>
     </AuthorizeView>
 </CascadingAuthenticationState>
@@ -59,6 +66,7 @@
     private bool _drawerOpen;
     private bool _isDarkMode;
     private bool _themeLoaded;
+    private bool _initialized;
 
     private readonly MudTheme _theme = new()
     {
@@ -104,6 +112,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await AuthStateProvider.InitializeAsync();
+            _initialized = true;
+            StateHasChanged();
+        }
+
         if (!_themeLoaded && AuthStateProvider.CurrentToken is not null)
         {
             _themeLoaded = true;
@@ -134,11 +149,11 @@
         await UserService.UpdateThemePreferenceAsync(_isDarkMode);
     }
 
-    private void HandleLogout()
+    private async Task HandleLogout()
     {
         _themeLoaded = false;
         _isDarkMode = false;
-        AuthStateProvider.ClearToken();
+        await AuthStateProvider.ClearTokenAsync();
         Navigation.NavigateTo("/account/login");
     }
 }
