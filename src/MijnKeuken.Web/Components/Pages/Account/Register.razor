@@ -30,22 +30,22 @@
             <EditForm Model="@this" OnSubmit="HandleRegister" FormName="registerForm">
                 <MudTextField T="string" @bind-Value="_username" Label="Gebruikersnaam"
                               Required="true" RequiredError="Gebruikersnaam is verplicht"
-                              Variant="Variant.Outlined" Class="mb-4" />
+                              Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
 
                 <MudTextField T="string" @bind-Value="_email" Label="E-mailadres"
                               InputType="InputType.Email"
                               Required="true" RequiredError="E-mailadres is verplicht"
-                              Variant="Variant.Outlined" Class="mb-4" />
+                              Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
 
                 <MudTextField T="string" @bind-Value="_password" Label="Wachtwoord"
                               InputType="InputType.Password"
                               Required="true" RequiredError="Wachtwoord is verplicht"
-                              Variant="Variant.Outlined" Class="mb-4" />
+                              Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
 
                 <MudTextField T="string" @bind-Value="_confirmPassword" Label="Wachtwoord bevestigen"
                               InputType="InputType.Password"
                               Required="true" RequiredError="Bevestiging is verplicht"
-                              Variant="Variant.Outlined" Class="mb-4" />
+                              Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
 
                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
                            FullWidth="true" Disabled="_isLoading">

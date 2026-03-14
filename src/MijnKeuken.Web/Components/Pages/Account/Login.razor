@@ -20,12 +20,12 @@
         <EditForm Model="@this" OnSubmit="HandleLogin" FormName="loginForm">
             <MudTextField T="string" @bind-Value="_username" Label="Gebruikersnaam"
                           Required="true" RequiredError="Gebruikersnaam is verplicht"
-                          Variant="Variant.Outlined" Class="mb-4" />
+                          Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
 
             <MudTextField T="string" @bind-Value="_password" Label="Wachtwoord"
                           InputType="InputType.Password"
                           Required="true" RequiredError="Wachtwoord is verplicht"
-                          Variant="Variant.Outlined" Class="mb-4" />
+                          Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
 
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
                        FullWidth="true" Disabled="_isLoading">
