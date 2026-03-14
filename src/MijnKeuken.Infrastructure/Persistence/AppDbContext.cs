@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using MijnKeuken.Domain.Entities;
 
 namespace MijnKeuken.Infrastructure.Persistence;
@@ -29,7 +30,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
             entity.Property(e => e.SysId)
                 .ValueGeneratedOnAdd()
-                .UseIdentityColumn();
+                .UseIdentityColumn()
+                .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
 
             entity.HasIndex(e => e.SysId)
                 .IsUnique()

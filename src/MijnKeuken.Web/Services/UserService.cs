@@ -53,6 +53,18 @@ public class UserService(
         return Result.Failure(error?.Error ?? "Goedkeuring mislukt.");
     }
 
+    public async Task<Result> UpdateThemePreferenceAsync(bool prefersDarkMode)
+    {
+        using var client = CreateClient();
+        var response = await client.PutAsJsonAsync("api/users/theme", new { prefersDarkMode });
+
+        if (response.IsSuccessStatusCode)
+            return Result.Success();
+
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        return Result.Failure(error?.Error ?? "Thema-instelling opslaan mislukt.");
+    }
+
     private HttpClient CreateClient()
     {
         var client = httpClientFactory.CreateClient();

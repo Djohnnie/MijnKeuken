@@ -9,4 +9,5 @@ public interface IUserService
     Task<List<UserListItemDto>> GetAllUsersAsync();
     Task<List<PendingUserDto>> GetPendingUsersAsync();
     Task<Result> ApproveUserAsync(Guid targetUserId);
+    Task<Result> UpdateThemePreferenceAsync(bool prefersDarkMode);
 }

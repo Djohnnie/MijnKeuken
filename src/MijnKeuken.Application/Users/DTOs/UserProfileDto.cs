@@ -5,4 +5,5 @@ public record UserProfileDto(
     string Username,
     string Email,
     bool IsApproved,
+    bool PrefersDarkMode,
     DateTime CreatedAt);

@@ -26,6 +26,7 @@ public class GetUserProfileHandlerTests
             Username = "testuser",
             Email = "test@test.nl",
             IsApproved = true,
+            PrefersDarkMode = true,
             CreatedAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc)
         };
         _userRepo.Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
@@ -38,6 +39,7 @@ public class GetUserProfileHandlerTests
         Assert.Equal("testuser", result.Value!.Username);
         Assert.Equal("test@test.nl", result.Value.Email);
         Assert.True(result.Value.IsApproved);
+        Assert.True(result.Value.PrefersDarkMode);
     }
 
     // Requesting a profile for an unknown user ID should return a failure result

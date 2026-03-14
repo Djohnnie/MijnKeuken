@@ -1,9 +1,11 @@
 ﻿@inherits LayoutComponentBase
 @using MijnKeuken.Web.Auth
+@using MijnKeuken.Web.Services
 @inject JwtAuthenticationStateProvider AuthStateProvider
+@inject IUserService UserService
 @inject NavigationManager Navigation
 
-<MudThemeProvider />
+<MudThemeProvider IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -17,6 +19,11 @@
                                    OnClick="@ToggleDrawer" />
                     <MudText Typo="Typo.h5" Class="ml-3">MijnKeuken</MudText>
                     <MudSpacer />
+                    <MudTooltip Text="@(_isDarkMode ? "Licht thema" : "Donker thema")">
+                        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                       Color="Color.Inherit" OnClick="ToggleDarkMode"
+                                       aria-label="Thema wisselen" />
+                    </MudTooltip>
                     <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit"
                                    Href="/account/profile" />
                     <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
@@ -42,14 +49,45 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isDarkMode;
+    private bool _themeLoaded;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_themeLoaded && AuthStateProvider.CurrentToken is not null)
+        {
+            _themeLoaded = true;
+            try
+            {
+                var result = await UserService.GetProfileAsync();
+                if (result.IsSuccess)
+                {
+                    _isDarkMode = result.Value!.PrefersDarkMode;
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // Ignore errors during theme loading
+            }
+        }
+    }
 
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
     }
 
+    private async Task ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+        await UserService.UpdateThemePreferenceAsync(_isDarkMode);
+    }
+
     private void HandleLogout()
     {
+        _themeLoaded = false;
+        _isDarkMode = false;
         AuthStateProvider.ClearToken();
         Navigation.NavigateTo("/account/login");
     }

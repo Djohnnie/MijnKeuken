@@ -35,6 +35,9 @@
                 <MudListItem T="string" Icon="@Icons.Material.Filled.CalendarToday">
                     <MudText><strong>Geregistreerd:</strong> @_profile.CreatedAt.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</MudText>
                 </MudListItem>
+                <MudListItem T="string" Icon="@(_profile.PrefersDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)">
+                    <MudText><strong>Thema:</strong> @(_profile.PrefersDarkMode ? "Donker" : "Licht")</MudText>
+                </MudListItem>
             </MudList>
         </MudPaper>
     }

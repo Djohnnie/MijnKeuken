@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MijnKeuken.Application.Users.Commands.ApproveUser;
+using MijnKeuken.Application.Users.Commands.UpdateThemePreference;
 using MijnKeuken.Application.Users.Queries.GetUserProfile;
 using MijnKeuken.Application.Interfaces;
 using MijnKeuken.Application.Users.DTOs;
@@ -44,6 +45,16 @@ public class UsersController(IMediator mediator, IUserRepository userRepository)
     {
         var userId = GetUserId();
         var result = await mediator.Send(new ApproveUserCommand(userId, id));
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
+
+    public record UpdateThemeRequest(bool PrefersDarkMode);
+
+    [HttpPut("theme")]
+    public async Task<IActionResult> UpdateTheme([FromBody] UpdateThemeRequest request)
+    {
+        var userId = GetUserId();
+        var result = await mediator.Send(new UpdateThemePreferenceCommand(userId, request.PrefersDarkMode));
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
     }
 

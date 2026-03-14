@@ -19,6 +19,7 @@ public class GetUserProfileHandler(
             user.Username,
             user.Email,
             user.IsApproved,
+            user.PrefersDarkMode,
             user.CreatedAt);
 
         return Result<UserProfileDto>.Success(dto);
