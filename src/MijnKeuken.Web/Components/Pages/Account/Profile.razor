@@ -47,6 +47,9 @@
     private UserProfileDto? _profile;
     private string? _errorMessage;
 
+    [CascadingParameter(Name = "IsDarkMode")]
+    private bool IsDarkMode { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var userId = AuthStateProvider.GetCurrentUserId();
@@ -61,5 +64,11 @@
             _profile = result.Value;
         else
             _errorMessage = result.Error;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_profile is not null)
+            _profile = _profile with { PrefersDarkMode = IsDarkMode };
     }
 }

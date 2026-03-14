@@ -41,9 +41,11 @@
                 </MudDrawer>
 
                 <MudMainContent>
-                    <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
-                        @Body
-                    </MudContainer>
+                    <CascadingValue Value="_isDarkMode" Name="IsDarkMode">
+                        <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+                            @Body
+                        </MudContainer>
+                    </CascadingValue>
                 </MudMainContent>
             </MudLayout>
         </Authorized>

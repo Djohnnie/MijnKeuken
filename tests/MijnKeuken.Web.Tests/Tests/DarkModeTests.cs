@@ -147,4 +147,40 @@ public class DarkModeTests : PlaywrightTestBase
         await themeText.WaitForAsync(new() { Timeout = 10000 });
         Assert.That(await themeText.IsVisibleAsync(), Is.True);
     }
+
+    /// <summary>
+    /// Toggling dark mode while the profile page is open should immediately
+    /// update the displayed theme preference without a page reload.
+    /// </summary>
+    [Test]
+    public async Task ProfilePage_ThemeUpdatesImmediatelyOnToggle()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAsSeedUserAsync(context);
+
+        // Navigate to profile page
+        await page.Locator("a[href='/account/profile']").ClickAsync();
+        await page.GetByText("Thema:").WaitForAsync(new() { Timeout = 10000 });
+
+        // Read current theme state from the profile
+        var themaLine = page.Locator("text=Thema:").Locator("..");
+        var initialText = await themaLine.TextContentAsync();
+        var startsLight = initialText!.Contains("Licht");
+
+        var expectedAfterToggle = startsLight ? "Donker" : "Licht";
+        var expectedAfterRevert = startsLight ? "Licht" : "Donker";
+
+        // Toggle theme from the top bar
+        await page.GetByLabel("Thema wisselen").ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+
+        // Profile should immediately reflect the change
+        Assert.That(await themaLine.TextContentAsync(), Does.Contain(expectedAfterToggle));
+
+        // Toggle back and verify it reverts
+        await page.GetByLabel("Thema wisselen").ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+
+        Assert.That(await themaLine.TextContentAsync(), Does.Contain(expectedAfterRevert));
+    }
 }
