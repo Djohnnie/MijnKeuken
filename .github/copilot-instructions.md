@@ -18,9 +18,9 @@ MijnKeuken is a complete custom kitchen configurator/solution built as a .NET 10
 ## Build & Run
 
 ```shell
-dotnet build
-dotnet run --project src/MijnKeuken
-dotnet watch --project src/MijnKeuken   # hot-reload during development
+dotnet build MijnKeuken.slnx
+dotnet run --project src/MijnKeuken.Web
+dotnet watch --project src/MijnKeuken.Web   # hot-reload during development
 ```
 
 ## Tests
@@ -33,7 +33,11 @@ dotnet test --filter "Category=Unit"    # unit tests only
 
 ## Architecture Conventions
 
-- Follow Clean Architecture: separate Domain, Application, Infrastructure, and Web/UI layers
+- Clean Architecture with four layers:
+  - `MijnKeuken.Domain` — entities, value objects, domain interfaces
+  - `MijnKeuken.Application` — use cases, DTOs, MediatR handlers (references Domain)
+  - `MijnKeuken.Infrastructure` — EF Core, external services (references Application)
+  - `MijnKeuken.Web` — Blazor Server UI, DI composition root (references Application + Infrastructure)
 - Use the CQRS pattern with MediatR for commands and queries
 - Use an API layer (e.g., ASP.NET Core Web API) to expose handlers to Razor components.
 - Wrap API calls in a service layer that Razor components can consume via dependency injection

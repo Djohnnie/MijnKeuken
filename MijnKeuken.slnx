@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MijnKeuken.Application/MijnKeuken.Application.csproj" />
+    <Project Path="src/MijnKeuken.Domain/MijnKeuken.Domain.csproj" />
+    <Project Path="src/MijnKeuken.Infrastructure/MijnKeuken.Infrastructure.csproj" />
+    <Project Path="src/MijnKeuken.Web/MijnKeuken.Web.csproj" />
+  </Folder>
+</Solution>
