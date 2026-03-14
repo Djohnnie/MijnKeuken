@@ -26,7 +26,7 @@ public class NavigationTests : PlaywrightTestBase
     }
 
     /// <summary>
-    /// When authenticated, the sidebar should show navigation links.
+    /// When authenticated, the sidebar should show navigation links (hover to expand mini drawer).
     /// </summary>
     [Test]
     public async Task AuthenticatedUser_SeesNavigationLinks()
@@ -34,7 +34,11 @@ public class NavigationTests : PlaywrightTestBase
         await using var context = await CreateContextAsync();
         var page = await LoginAsSeedUserAsync(context);
 
-        Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Home" }).IsVisibleAsync(), Is.True);
+        // Hover the mini drawer to expand it and reveal link text
+        await page.Locator(".mud-drawer").HoverAsync();
+        await page.WaitForTimeoutAsync(500);
+
+        Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Dashboard" }).IsVisibleAsync(), Is.True);
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Counter" }).IsVisibleAsync(), Is.True);
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Weer" }).IsVisibleAsync(), Is.True);
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Gebruikers" }).IsVisibleAsync(), Is.True);
@@ -63,6 +67,9 @@ public class NavigationTests : PlaywrightTestBase
         await using var context = await CreateContextAsync();
         var page = await LoginAsSeedUserAsync(context);
 
+        // Hover mini drawer to expand, then click Counter link
+        await page.Locator(".mud-drawer").HoverAsync();
+        await page.WaitForTimeoutAsync(500);
         await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Counter" }).ClickAsync();
 
         var counterTitle = page.GetByText("Counter").First;
@@ -79,6 +86,9 @@ public class NavigationTests : PlaywrightTestBase
         await using var context = await CreateContextAsync();
         var page = await LoginAsSeedUserAsync(context);
 
+        // Hover mini drawer to expand, then click Weer link
+        await page.Locator(".mud-drawer").HoverAsync();
+        await page.WaitForTimeoutAsync(500);
         await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Weer" }).ClickAsync();
 
         var weatherTitle = page.GetByText("Weer").First;
@@ -95,6 +105,9 @@ public class NavigationTests : PlaywrightTestBase
         await using var context = await CreateContextAsync();
         var page = await LoginAsSeedUserAsync(context);
 
+        // Hover mini drawer to expand, then click Gebruikers link
+        await page.Locator(".mud-drawer").HoverAsync();
+        await page.WaitForTimeoutAsync(500);
         await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Gebruikers" }).ClickAsync();
 
         var usersTitle = page.GetByText("Gebruikers").First;

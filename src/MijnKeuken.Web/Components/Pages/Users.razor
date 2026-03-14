@@ -6,20 +6,21 @@
 <PageTitle>Gebruikers</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large">
-    <MudText Typo="Typo.h4" GutterBottom="true" Class="mt-4">Gebruikers</MudText>
+    <MudText Typo="Typo.h4" GutterBottom="true">Gebruikers</MudText>
 
     @if (_users is null)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
     }
     else
     {
-        <MudTable Items="@_users" Hover="true" Striped="true" Elevation="2" Class="mt-4"
+        <MudTable Items="@_users" Hover="true" Dense="true" Elevation="0" Class="border-table"
                   Filter="new Func<UserListItemDto, bool>(FilterFunc)">
             <ToolBarContent>
                 <MudTextField T="string" @bind-Value="_searchString" Placeholder="Zoeken..."
-                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                              IconSize="Size.Medium" Immediate="true" Class="mt-0" />
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                              IconSize="Size.Small" Immediate="true" Class="mt-0"
+                              Margin="Margin.Dense" />
             </ToolBarContent>
             <HeaderContent>
                 <MudTh>Gebruikersnaam</MudTh>
@@ -34,18 +35,18 @@
                 <MudTd DataLabel="Status">
                     @if (context.IsApproved)
                     {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Goedgekeurd</MudChip>
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Outlined">Goedgekeurd</MudChip>
                     }
                     else
                     {
-                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">Wachtend</MudChip>
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Outlined">Wachtend</MudChip>
                     }
                 </MudTd>
                 <MudTd DataLabel="Geregistreerd">@context.CreatedAt.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</MudTd>
                 <MudTd>
                     @if (!context.IsApproved)
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success"
                                    OnClick="() => ApproveUser(context.Id)" Disabled="_approvingId == context.Id">
                             @if (_approvingId == context.Id)
                             {

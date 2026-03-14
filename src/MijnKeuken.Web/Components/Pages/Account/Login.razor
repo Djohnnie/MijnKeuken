@@ -8,27 +8,30 @@
 
 <PageTitle>Inloggen</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Small">
-    <MudPaper Class="pa-6 mt-8" Elevation="3">
+<MudContainer MaxWidth="MaxWidth.ExtraSmall">
+    <MudPaper Class="pa-5 mt-6" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default);">
         <MudText Typo="Typo.h4" GutterBottom="true">Inloggen</MudText>
 
         @if (!string.IsNullOrEmpty(_errorMessage))
         {
-            <MudAlert Severity="Severity.Error" Class="mb-4">@_errorMessage</MudAlert>
+            <MudAlert Severity="Severity.Error" Class="mb-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
         }
 
         <EditForm Model="@this" OnSubmit="HandleLogin" FormName="loginForm">
             <MudTextField T="string" @bind-Value="_username" Label="Gebruikersnaam"
                           Required="true" RequiredError="Gebruikersnaam is verplicht"
-                          Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
+                          Variant="Variant.Outlined" Immediate="true" Class="mb-3"
+                          Margin="Margin.Dense" />
 
             <MudTextField T="string" @bind-Value="_password" Label="Wachtwoord"
                           InputType="InputType.Password"
                           Required="true" RequiredError="Wachtwoord is verplicht"
-                          Variant="Variant.Outlined" Immediate="true" Class="mb-4" />
+                          Variant="Variant.Outlined" Immediate="true" Class="mb-3"
+                          Margin="Margin.Dense" />
 
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
-                       FullWidth="true" Disabled="_isLoading">
+                       FullWidth="true" Disabled="_isLoading" Size="Size.Medium"
+                       Style="text-transform:none;">
                 @if (_isLoading)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -37,7 +40,7 @@
             </MudButton>
         </EditForm>
 
-        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-3">
             Geen account? <MudLink Href="/account/register">Registreren</MudLink>
         </MudText>
     </MudPaper>

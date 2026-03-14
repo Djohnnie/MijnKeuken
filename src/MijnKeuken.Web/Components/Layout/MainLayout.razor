@@ -5,7 +5,7 @@
 @inject IUserService UserService
 @inject NavigationManager Navigation
 
-<MudThemeProvider IsDarkMode="_isDarkMode" />
+<MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -14,28 +14,34 @@
     <AuthorizeView>
         <Authorized>
             <MudLayout>
-                <MudAppBar Elevation="1">
-                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                                   OnClick="@ToggleDrawer" />
-                    <MudText Typo="Typo.h5" Class="ml-3">MijnKeuken</MudText>
+                <MudAppBar Elevation="0" Dense="true" Class="border-b mud-border-lines-default">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                                   Size="Size.Small" OnClick="@ToggleDrawer" />
+                    <MudText Typo="Typo.h6" Class="ml-2" Style="font-weight:600;letter-spacing:-.5px;">MijnKeuken</MudText>
                     <MudSpacer />
-                    <MudTooltip Text="@(_isDarkMode ? "Licht thema" : "Donker thema")">
-                        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                                       Color="Color.Inherit" OnClick="ToggleDarkMode"
+                    <MudTooltip Text="@(_isDarkMode ? "Licht thema" : "Donker thema")" Delay="300">
+                        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Rounded.LightMode : Icons.Material.Rounded.DarkMode)"
+                                       Color="Color.Inherit" Size="Size.Small" OnClick="ToggleDarkMode"
                                        aria-label="Thema wisselen" />
                     </MudTooltip>
-                    <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit"
-                                   Href="/account/profile" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
-                                   OnClick="HandleLogout" />
+                    <MudTooltip Text="Profiel" Delay="300">
+                        <MudIconButton Icon="@Icons.Material.Rounded.PersonOutline" Color="Color.Inherit"
+                                       Size="Size.Small" Href="/account/profile" />
+                    </MudTooltip>
+                    <MudTooltip Text="Uitloggen" Delay="300">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Logout" Color="Color.Inherit"
+                                       Size="Size.Small" OnClick="HandleLogout" />
+                    </MudTooltip>
                 </MudAppBar>
 
-                <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+                <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
+                           Variant="DrawerVariant.Mini" OpenMiniOnHover="true"
+                           Class="border-r mud-border-lines-default">
                     <NavMenu />
                 </MudDrawer>
 
                 <MudMainContent>
-                    <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+                    <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
                         @Body
                     </MudContainer>
                 </MudMainContent>
@@ -48,9 +54,51 @@
 </CascadingAuthenticationState>
 
 @code {
-    private bool _drawerOpen = true;
+    private bool _drawerOpen;
     private bool _isDarkMode;
     private bool _themeLoaded;
+
+    private readonly MudTheme _theme = new()
+    {
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = ["Inter", "Roboto", "Helvetica", "Arial", "sans-serif"], FontSize = ".8125rem" },
+            H3 = new H3Typography { FontSize = "1.5rem", FontWeight = "700" },
+            H4 = new H4Typography { FontSize = "1.25rem", FontWeight = "600" },
+            H5 = new H5Typography { FontSize = "1.1rem", FontWeight = "600" },
+            H6 = new H6Typography { FontSize = ".95rem", FontWeight = "600" },
+            Body1 = new Body1Typography { FontSize = ".8125rem" },
+            Body2 = new Body2Typography { FontSize = ".75rem" },
+            Button = new ButtonTypography { FontSize = ".8125rem", FontWeight = "500", TextTransform = "none" },
+        },
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1976d2",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#1e1e1e",
+            DrawerBackground = "#fafafa",
+            Background = "#f5f5f5",
+            Surface = "#ffffff",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#5c9ce6",
+            AppbarBackground = "#1e1e1e",
+            DrawerBackground = "#1a1a1a",
+            Background = "#121212",
+            Surface = "#1e1e1e",
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "6px",
+            DrawerWidthLeft = "220px",
+            DrawerMiniWidthLeft = "56px",
+        },
+        Shadows = new Shadow
+        {
+            Elevation = Enumerable.Range(0, 26).Select(i => i == 0 ? "none" : "0 1px 3px rgba(0,0,0,.08)").ToArray()
+        }
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

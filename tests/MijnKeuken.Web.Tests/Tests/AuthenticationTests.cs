@@ -145,8 +145,8 @@ public class AuthenticationTests : PlaywrightTestBase
         await page.GetByLabel("Wachtwoord").FillAsync("WrongPassword!");
         await page.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Inloggen" }).ClickAsync();
 
-        // MudAlert renders with CSS class mud-alert, not ARIA role="alert"
-        var errorAlert = page.Locator(".mud-alert-text-error");
+        // MudAlert with Variant.Outlined uses mud-alert-outlined-error class
+        var errorAlert = page.Locator(".mud-alert-outlined-error");
         await errorAlert.WaitForAsync(new() { Timeout = 10000 });
         Assert.That(await errorAlert.IsVisibleAsync(), Is.True);
     }

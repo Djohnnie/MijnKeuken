@@ -8,35 +8,35 @@
 
 <PageTitle>Profiel</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium">
+<MudContainer MaxWidth="MaxWidth.Small">
     @if (_profile is null && _errorMessage is null)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-8" />
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" Class="mt-6" />
     }
     else if (_errorMessage is not null)
     {
-        <MudAlert Severity="Severity.Error" Class="mt-8">@_errorMessage</MudAlert>
+        <MudAlert Severity="Severity.Error" Class="mt-6" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
     }
     else
     {
-        <MudPaper Class="pa-6 mt-8" Elevation="3">
+        <MudPaper Class="pa-5 mt-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default);">
             <MudText Typo="Typo.h4" GutterBottom="true">Mijn profiel</MudText>
 
-            <MudList T="string">
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Person">
-                    <MudText><strong>Gebruikersnaam:</strong> @_profile!.Username</MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem T="string" Icon="@Icons.Material.Rounded.PersonOutline" IconSize="Size.Small">
+                    <MudText Typo="Typo.body2"><strong>Gebruikersnaam:</strong> @_profile!.Username</MudText>
                 </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Email">
-                    <MudText><strong>E-mail:</strong> @_profile.Email</MudText>
+                <MudListItem T="string" Icon="@Icons.Material.Rounded.Email" IconSize="Size.Small">
+                    <MudText Typo="Typo.body2"><strong>E-mail:</strong> @_profile.Email</MudText>
                 </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
-                    <MudText><strong>Status:</strong> @(_profile.IsApproved ? "Goedgekeurd" : "Wacht op goedkeuring")</MudText>
+                <MudListItem T="string" Icon="@Icons.Material.Rounded.CheckCircleOutline" IconSize="Size.Small">
+                    <MudText Typo="Typo.body2"><strong>Status:</strong> @(_profile.IsApproved ? "Goedgekeurd" : "Wacht op goedkeuring")</MudText>
                 </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.CalendarToday">
-                    <MudText><strong>Geregistreerd:</strong> @_profile.CreatedAt.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</MudText>
+                <MudListItem T="string" Icon="@Icons.Material.Rounded.CalendarToday" IconSize="Size.Small">
+                    <MudText Typo="Typo.body2"><strong>Geregistreerd:</strong> @_profile.CreatedAt.ToLocalTime().ToString("dd-MM-yyyy HH:mm")</MudText>
                 </MudListItem>
-                <MudListItem T="string" Icon="@(_profile.PrefersDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)">
-                    <MudText><strong>Thema:</strong> @(_profile.PrefersDarkMode ? "Donker" : "Licht")</MudText>
+                <MudListItem T="string" Icon="@(_profile.PrefersDarkMode ? Icons.Material.Rounded.DarkMode : Icons.Material.Rounded.LightMode)" IconSize="Size.Small">
+                    <MudText Typo="Typo.body2"><strong>Thema:</strong> @(_profile.PrefersDarkMode ? "Donker" : "Licht")</MudText>
                 </MudListItem>
             </MudList>
         </MudPaper>

@@ -1,19 +1,49 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudText Typo="Typo.h5" Class="ml-3">MijnKeuken</MudText>
+    <MudAppBar Elevation="0" Dense="true" Class="border-b mud-border-lines-default">
+        <MudText Typo="Typo.h6" Class="ml-2" Style="font-weight:600;letter-spacing:-.5px;">MijnKeuken</MudText>
         <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.Login" Color="Color.Inherit"
-                       Href="/account/login" />
+        <MudIconButton Icon="@Icons.Material.Rounded.Login" Color="Color.Inherit"
+                       Size="Size.Small" Href="/account/login" />
     </MudAppBar>
 
     <MudMainContent>
         @Body
     </MudMainContent>
 </MudLayout>
+
+@code {
+    private readonly MudTheme _theme = new()
+    {
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = ["Inter", "Roboto", "Helvetica", "Arial", "sans-serif"], FontSize = ".8125rem" },
+            H4 = new H4Typography { FontSize = "1.25rem", FontWeight = "600" },
+            Body1 = new Body1Typography { FontSize = ".8125rem" },
+            Body2 = new Body2Typography { FontSize = ".75rem" },
+            Button = new ButtonTypography { FontSize = ".8125rem", FontWeight = "500", TextTransform = "none" },
+        },
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1976d2",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#1e1e1e",
+            Background = "#f5f5f5",
+            Surface = "#ffffff",
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "6px",
+        },
+        Shadows = new Shadow
+        {
+            Elevation = Enumerable.Range(0, 26).Select(i => i == 0 ? "none" : "0 1px 3px rgba(0,0,0,.08)").ToArray()
+        }
+    };
+}
