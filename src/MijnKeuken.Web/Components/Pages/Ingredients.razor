@@ -148,7 +148,7 @@
             UnitType.Percentage => "%",
             _ => i.CustomUnitDescription
         };
-        return $"{i.AmountAvailable}/{i.AmountTotal} {unit}";
+        return $"{(int)i.AmountAvailable}/{(int)i.AmountTotal} {unit}";
     }
 
     private async Task OpenCreateDialog()

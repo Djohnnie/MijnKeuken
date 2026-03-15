@@ -147,4 +147,42 @@ public class IngredientTests : PlaywrightTestBase
         Assert.That(await matchCell.IsVisibleAsync(), Is.True);
         Assert.That(await page.Locator("tr", new() { HasText = otherTitle }).IsVisibleAsync(), Is.False);
     }
+
+    [Test]
+    public async Task PercentageUnit_SetsTotalTo100AndReadOnly()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToIngredientsAsync(context);
+
+        await page.Locator("button:has-text('Nieuw ingrediënt')").ClickAsync();
+
+        var dialog = page.Locator(".mud-dialog");
+        await dialog.WaitForAsync(new() { Timeout = 5000 });
+
+        // Select "Percentage" unit
+        await dialog.Locator("div.mud-select[id]").First.ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+        await page.Locator(".mud-popover-open .mud-list-item").GetByText("Percentage", new() { Exact = true }).ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+
+        // Total should be set to 100
+        var totalInput = dialog.GetByLabel("Totaal");
+        var totalValue = await totalInput.InputValueAsync();
+        Assert.That(totalValue, Is.EqualTo("100"));
+
+        // Total input should be readonly
+        var readonlyAttr = await totalInput.GetAttributeAsync("readonly");
+        Assert.That(readonlyAttr, Is.Not.Null);
+
+        // Switch back to "Stuks" — total should become editable again
+        await dialog.Locator("div.mud-select[id]").First.ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+        await page.Locator(".mud-popover-open .mud-list-item").GetByText("Stuks", new() { Exact = true }).ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+
+        readonlyAttr = await totalInput.GetAttributeAsync("readonly");
+        Assert.That(readonlyAttr, Is.Null);
+
+        await dialog.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
 }

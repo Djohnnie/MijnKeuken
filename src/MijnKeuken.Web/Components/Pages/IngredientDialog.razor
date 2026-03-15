@@ -13,14 +13,16 @@
                       Margin="Margin.Dense" Class="mb-3" Lines="2" />
 
         <MudStack Row="true" Spacing="2" Class="mb-3">
-            <MudNumericField T="decimal" @bind-Value="AmountAvailable" Label="Beschikbaar"
-                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
-            <MudNumericField T="decimal" @bind-Value="AmountTotal" Label="Totaal"
-                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+            <MudNumericField T="int" @bind-Value="AmountAvailableInt" Label="Beschikbaar"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
+                             Max="@(IsPercentage ? 100 : int.MaxValue)" />
+            <MudNumericField T="int" @bind-Value="AmountTotalInt" Label="Totaal"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
+                             ReadOnly="IsPercentage" />
         </MudStack>
 
         <MudStack Row="true" Spacing="2" Class="mb-3">
-            <MudSelect T="UnitType" @bind-Value="Unit" Label="Eenheid" Variant="Variant.Outlined"
+            <MudSelect T="UnitType" Value="Unit" ValueChanged="OnUnitChanged" Label="Eenheid" Variant="Variant.Outlined"
                        Margin="Margin.Dense" Style="flex:1;">
                 <MudSelectItem T="UnitType" Value="UnitType.Grams">Gram</MudSelectItem>
                 <MudSelectItem T="UnitType" Value="UnitType.Units">Stuks</MudSelectItem>
@@ -84,6 +86,9 @@
     [Parameter] public string Description { get; set; } = string.Empty;
     [Parameter] public decimal AmountAvailable { get; set; }
     [Parameter] public decimal AmountTotal { get; set; }
+
+    private int AmountAvailableInt { get; set; }
+    private int AmountTotalInt { get; set; }
     [Parameter] public UnitType Unit { get; set; }
     [Parameter] public string CustomUnitDescription { get; set; } = string.Empty;
     [Parameter] public string Barcode { get; set; } = string.Empty;
@@ -93,6 +98,21 @@
     [Parameter] public List<Guid> SelectedTagIds { get; set; } = [];
     [Parameter] public List<TagDto> AvailableTags { get; set; } = [];
     [Parameter] public List<StorageLocationDto> AvailableStorageLocations { get; set; } = [];
+
+    private bool IsPercentage => Unit == UnitType.Percentage;
+
+    protected override void OnParametersSet()
+    {
+        AmountAvailableInt = (int)AmountAvailable;
+        AmountTotalInt = (int)AmountTotal;
+    }
+
+    private void OnUnitChanged(UnitType newUnit)
+    {
+        Unit = newUnit;
+        if (newUnit == UnitType.Percentage)
+            AmountTotalInt = 100;
+    }
 
     private void ToggleTag(Guid tagId)
     {
@@ -106,7 +126,7 @@
     {
         MudDialog.Close(DialogResult.Ok(new IngredientFormResult(
             Title.Trim(), Description?.Trim() ?? string.Empty,
-            AmountAvailable, AmountTotal,
+            AmountAvailableInt, AmountTotalInt,
             Unit, CustomUnitDescription?.Trim() ?? string.Empty,
             Barcode?.Trim() ?? string.Empty, StoreUrl?.Trim() ?? string.Empty,
             IsOutOfStock, SelectedStorageLocationId,
