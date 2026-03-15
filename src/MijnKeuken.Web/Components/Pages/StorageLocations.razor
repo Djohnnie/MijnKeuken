@@ -1,0 +1,154 @@
+@page "/storage"
+@using MijnKeuken.Application.StorageLocations.DTOs
+@using MijnKeuken.Web.Services
+@inject IStorageLocationService StorageLocationService
+@inject IDialogService DialogService
+
+<PageTitle>Opslag</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h4">Opslaglocaties</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
+            Nieuwe locatie
+        </MudButton>
+    </MudStack>
+
+    @if (_locations is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else
+    {
+        <MudTextField T="string" @bind-Value="_searchString" Placeholder="Zoeken op naam..."
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                      IconSize="Size.Small" Immediate="true" Margin="Margin.Dense"
+                      Variant="Variant.Outlined" Style="max-width:300px;" Class="mb-3" />
+
+        <MudTable Items="@FilteredLocations" Hover="true" Dense="true" Elevation="0" Class="border-table">
+            <HeaderContent>
+                <MudTh>Naam</MudTh>
+                <MudTh>Omschrijving</MudTh>
+                <MudTh Style="width:150px;">Acties</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Naam">@context.Name</MudTd>
+                <MudTd DataLabel="Omschrijving">@context.Description</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="() => OpenEditDialog(context)" />
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="() => ConfirmDelete(context)" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" RowsPerPageString="Rijen per pagina:" />
+            </PagerContent>
+        </MudTable>
+    }
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private List<StorageLocationDto>? _locations;
+    private string _searchString = string.Empty;
+    private string? _errorMessage;
+
+    private IEnumerable<StorageLocationDto> FilteredLocations => _locations?.Where(FilterFunc) ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLocations();
+    }
+
+    private async Task LoadLocations()
+    {
+        _locations = await StorageLocationService.GetAllAsync();
+    }
+
+    private bool FilterFunc(StorageLocationDto location)
+    {
+        if (!string.IsNullOrWhiteSpace(_searchString)
+            && !location.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return false;
+        return true;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<StorageLocationDialog>
+        {
+            { x => x.IsEdit, false },
+            { x => x.Name, string.Empty },
+            { x => x.Description, string.Empty }
+        };
+
+        var dialog = await DialogService.ShowAsync<StorageLocationDialog>("Nieuwe opslaglocatie", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: StorageLocationDialog.StorageLocationFormResult formResult })
+        {
+            _errorMessage = null;
+            var createResult = await StorageLocationService.CreateAsync(formResult.Name, formResult.Description);
+            if (createResult.IsSuccess)
+                await LoadLocations();
+            else
+                _errorMessage = createResult.Error;
+        }
+    }
+
+    private async Task OpenEditDialog(StorageLocationDto location)
+    {
+        var parameters = new DialogParameters<StorageLocationDialog>
+        {
+            { x => x.IsEdit, true },
+            { x => x.Name, location.Name },
+            { x => x.Description, location.Description }
+        };
+
+        var dialog = await DialogService.ShowAsync<StorageLocationDialog>("Opslaglocatie bewerken", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: StorageLocationDialog.StorageLocationFormResult formResult })
+        {
+            _errorMessage = null;
+            var updateResult = await StorageLocationService.UpdateAsync(location.Id, formResult.Name, formResult.Description);
+            if (updateResult.IsSuccess)
+                await LoadLocations();
+            else
+                _errorMessage = updateResult.Error;
+        }
+    }
+
+    private async Task ConfirmDelete(StorageLocationDto location)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Weet je zeker dat je de opslaglocatie \"{location.Name}\" wilt verwijderen?" },
+            { x => x.ConfirmText, "Verwijderen" },
+            { x => x.ConfirmColor, Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Opslaglocatie verwijderen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _errorMessage = null;
+            var deleteResult = await StorageLocationService.DeleteAsync(location.Id);
+            if (deleteResult.IsSuccess)
+                await LoadLocations();
+            else
+                _errorMessage = deleteResult.Error;
+        }
+    }
+}

@@ -8,11 +8,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureBaseEntity<User>(modelBuilder);
         ConfigureBaseEntity<Tag>(modelBuilder);
+        ConfigureBaseEntity<StorageLocation>(modelBuilder);
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -28,6 +30,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
             entity.Property(t => t.Color).HasMaxLength(9).IsRequired();
             entity.Property(t => t.Type).HasConversion<string>().HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<StorageLocation>(entity =>
+        {
+            entity.HasIndex(l => l.Name).IsUnique();
+            entity.Property(l => l.Name).HasMaxLength(100).IsRequired();
+            entity.Property(l => l.Description).HasMaxLength(500);
         });
     }
 

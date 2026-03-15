@@ -154,7 +154,7 @@ public class WebAppFixture
     }
 
     /// <summary>
-    /// Clears the Users and Tags tables so tests start with a clean state.
+    /// Clears the Users, Tags and StorageLocations tables so tests start with a clean state.
     /// Safe to call even if the tables don't exist yet (migrations haven't run).
     /// </summary>
     private static async Task ClearTablesAsync(string connectionString)
@@ -165,6 +165,7 @@ public class WebAppFixture
             await conn.OpenAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
+                IF OBJECT_ID('StorageLocations', 'U') IS NOT NULL DELETE FROM StorageLocations;
                 IF OBJECT_ID('Tags', 'U') IS NOT NULL DELETE FROM Tags;
                 IF OBJECT_ID('Users', 'U') IS NOT NULL DELETE FROM Users;
                 """;

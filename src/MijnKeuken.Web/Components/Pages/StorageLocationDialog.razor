@@ -1,0 +1,35 @@
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="Name" Label="Naam" Required="true"
+                      RequiredError="Naam is verplicht" Variant="Variant.Outlined"
+                      Immediate="true" Class="mb-3" Margin="Margin.Dense" />
+
+        <MudTextField T="string" @bind-Value="Description" Label="Omschrijving" Variant="Variant.Outlined"
+                      Lines="3" Class="mb-3" Margin="Margin.Dense" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Size="Size.Small">Annuleren</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                   OnClick="Submit" Disabled="string.IsNullOrWhiteSpace(Name)">
+            @(IsEdit ? "Opslaan" : "Aanmaken")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter] public string Description { get; set; } = string.Empty;
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(new StorageLocationFormResult(Name.Trim(), Description?.Trim() ?? string.Empty)));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public record StorageLocationFormResult(string Name, string Description);
+}
