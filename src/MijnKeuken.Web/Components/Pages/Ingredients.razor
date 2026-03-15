@@ -1,0 +1,257 @@
+@page "/ingredients"
+@using MijnKeuken.Application.Ingredients.DTOs
+@using MijnKeuken.Application.Tags.DTOs
+@using MijnKeuken.Application.StorageLocations.DTOs
+@using MijnKeuken.Domain.Entities
+@using MijnKeuken.Web.Services
+@inject IIngredientService IngredientService
+@inject ITagService TagService
+@inject IStorageLocationService StorageLocationService
+@inject IDialogService DialogService
+
+<PageTitle>Ingrediënten</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h4">Ingrediënten</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
+            Nieuw ingrediënt
+        </MudButton>
+    </MudStack>
+
+    @if (_ingredients is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else
+    {
+        <MudStack Row="true" Spacing="2" Class="mb-3" AlignItems="AlignItems.End">
+            <MudTextField T="string" @bind-Value="_searchString" Placeholder="Zoeken op titel..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                          IconSize="Size.Small" Immediate="true" Margin="Margin.Dense"
+                          Variant="Variant.Outlined" Style="max-width:300px;" />
+            <MudSelect T="Guid?" @bind-Value="_storageFilter" Label="Opslag" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" Style="max-width:200px;">
+                @foreach (var loc in _storageLocations)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)loc.Id)">@loc.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid?" @bind-Value="_tagFilter" Label="Tag" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" Style="max-width:200px;">
+                @foreach (var tag in _ingredientTags)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)tag.Id)">@tag.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+
+        <MudTable Items="@FilteredIngredients" Hover="true" Dense="true" Elevation="0" Class="border-table">
+            <HeaderContent>
+                <MudTh>Titel</MudTh>
+                <MudTh>Tags</MudTh>
+                <MudTh>Opslag</MudTh>
+                <MudTh>Voorraad</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh Style="width:150px;">Acties</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Titel">@context.Title</MudTd>
+                <MudTd DataLabel="Tags">
+                    @foreach (var tag in context.Tags)
+                    {
+                        <MudChip T="string" Size="Size.Small" Style="@($"background:{tag.Color};color:white;")">
+                            @tag.Name
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Opslag">@(context.StorageLocationName ?? "—")</MudTd>
+                <MudTd DataLabel="Voorraad">@FormatAmount(context)</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (context.IsOutOfStock)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">Op</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Op voorraad</MudChip>
+                    }
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="() => OpenEditDialog(context)" />
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="() => ConfirmDelete(context)" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" RowsPerPageString="Rijen per pagina:" />
+            </PagerContent>
+        </MudTable>
+    }
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private List<IngredientDto>? _ingredients;
+    private List<TagDto> _ingredientTags = [];
+    private List<StorageLocationDto> _storageLocations = [];
+    private string _searchString = string.Empty;
+    private Guid? _storageFilter;
+    private Guid? _tagFilter;
+    private string? _errorMessage;
+
+    private IEnumerable<IngredientDto> FilteredIngredients => _ingredients?.Where(FilterFunc) ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var ingredientsTask = IngredientService.GetAllAsync();
+        var tagsTask = TagService.GetAllAsync();
+        var storageTask = StorageLocationService.GetAllAsync();
+
+        await Task.WhenAll(ingredientsTask, tagsTask, storageTask);
+
+        _ingredients = ingredientsTask.Result;
+        _ingredientTags = tagsTask.Result.Where(t => t.Type == TagType.Ingredient).ToList();
+        _storageLocations = storageTask.Result;
+    }
+
+    private bool FilterFunc(IngredientDto ingredient)
+    {
+        if (!string.IsNullOrWhiteSpace(_searchString)
+            && !ingredient.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (_storageFilter.HasValue && ingredient.StorageLocationId != _storageFilter.Value)
+            return false;
+        if (_tagFilter.HasValue && !ingredient.Tags.Any(t => t.TagId == _tagFilter.Value))
+            return false;
+        return true;
+    }
+
+    private static string FormatAmount(IngredientDto i)
+    {
+        var unit = i.Unit switch
+        {
+            UnitType.Grams => "g",
+            UnitType.Units => "stuks",
+            UnitType.Percentage => "%",
+            _ => i.CustomUnitDescription
+        };
+        return $"{i.AmountAvailable}/{i.AmountTotal} {unit}";
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<IngredientDialog>
+        {
+            { x => x.IsEdit, false },
+            { x => x.Title, string.Empty },
+            { x => x.Description, string.Empty },
+            { x => x.AmountAvailable, 0m },
+            { x => x.AmountTotal, 0m },
+            { x => x.Unit, UnitType.Units },
+            { x => x.CustomUnitDescription, string.Empty },
+            { x => x.Barcode, string.Empty },
+            { x => x.StoreUrl, string.Empty },
+            { x => x.IsOutOfStock, false },
+            { x => x.SelectedStorageLocationId, null },
+            { x => x.SelectedTagIds, new List<Guid>() },
+            { x => x.AvailableTags, _ingredientTags },
+            { x => x.AvailableStorageLocations, _storageLocations }
+        };
+
+        var dialog = await DialogService.ShowAsync<IngredientDialog>("Nieuw ingrediënt", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: IngredientDialog.IngredientFormResult formResult })
+        {
+            _errorMessage = null;
+            var createResult = await IngredientService.CreateAsync(new CreateIngredientRequest(
+                formResult.Title, formResult.Description,
+                formResult.AmountAvailable, formResult.AmountTotal,
+                formResult.Unit, formResult.CustomUnitDescription,
+                formResult.Barcode, formResult.StoreUrl, formResult.IsOutOfStock,
+                formResult.StorageLocationId, formResult.TagIds));
+            if (createResult.IsSuccess)
+                await LoadData();
+            else
+                _errorMessage = createResult.Error;
+        }
+    }
+
+    private async Task OpenEditDialog(IngredientDto ingredient)
+    {
+        var parameters = new DialogParameters<IngredientDialog>
+        {
+            { x => x.IsEdit, true },
+            { x => x.Title, ingredient.Title },
+            { x => x.Description, ingredient.Description },
+            { x => x.AmountAvailable, ingredient.AmountAvailable },
+            { x => x.AmountTotal, ingredient.AmountTotal },
+            { x => x.Unit, ingredient.Unit },
+            { x => x.CustomUnitDescription, ingredient.CustomUnitDescription },
+            { x => x.Barcode, ingredient.Barcode },
+            { x => x.StoreUrl, ingredient.StoreUrl },
+            { x => x.IsOutOfStock, ingredient.IsOutOfStock },
+            { x => x.SelectedStorageLocationId, ingredient.StorageLocationId },
+            { x => x.SelectedTagIds, ingredient.Tags.Select(t => t.TagId).ToList() },
+            { x => x.AvailableTags, _ingredientTags },
+            { x => x.AvailableStorageLocations, _storageLocations }
+        };
+
+        var dialog = await DialogService.ShowAsync<IngredientDialog>("Ingrediënt bewerken", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: IngredientDialog.IngredientFormResult formResult })
+        {
+            _errorMessage = null;
+            var updateResult = await IngredientService.UpdateAsync(ingredient.Id, new CreateIngredientRequest(
+                formResult.Title, formResult.Description,
+                formResult.AmountAvailable, formResult.AmountTotal,
+                formResult.Unit, formResult.CustomUnitDescription,
+                formResult.Barcode, formResult.StoreUrl, formResult.IsOutOfStock,
+                formResult.StorageLocationId, formResult.TagIds));
+            if (updateResult.IsSuccess)
+                await LoadData();
+            else
+                _errorMessage = updateResult.Error;
+        }
+    }
+
+    private async Task ConfirmDelete(IngredientDto ingredient)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Weet je zeker dat je het ingrediënt \"{ingredient.Title}\" wilt verwijderen?" },
+            { x => x.ConfirmText, "Verwijderen" },
+            { x => x.ConfirmColor, Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Ingrediënt verwijderen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _errorMessage = null;
+            var deleteResult = await IngredientService.DeleteAsync(ingredient.Id);
+            if (deleteResult.IsSuccess)
+                await LoadData();
+            else
+                _errorMessage = deleteResult.Error;
+        }
+    }
+}

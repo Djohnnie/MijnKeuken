@@ -1,0 +1,124 @@
+@using MijnKeuken.Application.Tags.DTOs
+@using MijnKeuken.Application.StorageLocations.DTOs
+@using MijnKeuken.Domain.Entities
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="Title" Label="Titel" Required="true"
+                      RequiredError="Titel is verplicht" Variant="Variant.Outlined"
+                      Immediate="true" Class="mb-3" Margin="Margin.Dense" />
+
+        <MudTextField T="string" @bind-Value="Description" Label="Omschrijving" Variant="Variant.Outlined"
+                      Margin="Margin.Dense" Class="mb-3" Lines="2" />
+
+        <MudStack Row="true" Spacing="2" Class="mb-3">
+            <MudNumericField T="decimal" @bind-Value="AmountAvailable" Label="Beschikbaar"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+            <MudNumericField T="decimal" @bind-Value="AmountTotal" Label="Totaal"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+        </MudStack>
+
+        <MudStack Row="true" Spacing="2" Class="mb-3">
+            <MudSelect T="UnitType" @bind-Value="Unit" Label="Eenheid" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Style="flex:1;">
+                <MudSelectItem T="UnitType" Value="UnitType.Grams">Gram</MudSelectItem>
+                <MudSelectItem T="UnitType" Value="UnitType.Units">Stuks</MudSelectItem>
+                <MudSelectItem T="UnitType" Value="UnitType.Percentage">Percentage</MudSelectItem>
+            </MudSelect>
+            <MudTextField T="string" @bind-Value="CustomUnitDescription" Label="Aangepaste eenheid"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Style="flex:1;" />
+        </MudStack>
+
+        <MudStack Row="true" Spacing="2" Class="mb-3">
+            <MudTextField T="string" @bind-Value="Barcode" Label="Barcode"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Style="flex:1;" />
+            <MudTextField T="string" @bind-Value="StoreUrl" Label="Winkel URL"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Style="flex:1;" />
+        </MudStack>
+
+        <MudSelect T="Guid?" @bind-Value="SelectedStorageLocationId" Label="Opslaglocatie"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Class="mb-3">
+            @foreach (var loc in AvailableStorageLocations)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)loc.Id)">@loc.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudText Typo="Typo.body2" Class="mb-1">Tags</MudText>
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-3">
+            @foreach (var tag in AvailableTags)
+            {
+                var isSelected = SelectedTagIds.Contains(tag.Id);
+                <MudChip T="string" Size="Size.Small"
+                         Style="@(isSelected ? $"background:{tag.Color};color:white;" : "")"
+                         Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                         OnClick="() => ToggleTag(tag.Id)">
+                    @tag.Name
+                </MudChip>
+            }
+            @if (!AvailableTags.Any())
+            {
+                <MudText Typo="Typo.caption" Color="Color.Tertiary">Geen ingrediënt-tags beschikbaar</MudText>
+            }
+        </MudStack>
+
+        <MudSwitch T="bool" @bind-Value="IsOutOfStock" Label="Op (niet op voorraad)" Color="Color.Error"
+                   Class="mb-1" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Size="Size.Small">Annuleren</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                   OnClick="Submit" Disabled="string.IsNullOrWhiteSpace(Title)">
+            @(IsEdit ? "Opslaan" : "Aanmaken")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public decimal AmountAvailable { get; set; }
+    [Parameter] public decimal AmountTotal { get; set; }
+    [Parameter] public UnitType Unit { get; set; }
+    [Parameter] public string CustomUnitDescription { get; set; } = string.Empty;
+    [Parameter] public string Barcode { get; set; } = string.Empty;
+    [Parameter] public string StoreUrl { get; set; } = string.Empty;
+    [Parameter] public bool IsOutOfStock { get; set; }
+    [Parameter] public Guid? SelectedStorageLocationId { get; set; }
+    [Parameter] public List<Guid> SelectedTagIds { get; set; } = [];
+    [Parameter] public List<TagDto> AvailableTags { get; set; } = [];
+    [Parameter] public List<StorageLocationDto> AvailableStorageLocations { get; set; } = [];
+
+    private void ToggleTag(Guid tagId)
+    {
+        if (SelectedTagIds.Contains(tagId))
+            SelectedTagIds.Remove(tagId);
+        else
+            SelectedTagIds.Add(tagId);
+    }
+
+    private void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(new IngredientFormResult(
+            Title.Trim(), Description?.Trim() ?? string.Empty,
+            AmountAvailable, AmountTotal,
+            Unit, CustomUnitDescription?.Trim() ?? string.Empty,
+            Barcode?.Trim() ?? string.Empty, StoreUrl?.Trim() ?? string.Empty,
+            IsOutOfStock, SelectedStorageLocationId,
+            SelectedTagIds.ToList())));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public record IngredientFormResult(
+        string Title, string Description,
+        decimal AmountAvailable, decimal AmountTotal,
+        UnitType Unit, string CustomUnitDescription,
+        string Barcode, string StoreUrl, bool IsOutOfStock,
+        Guid? StorageLocationId, List<Guid> TagIds);
+}

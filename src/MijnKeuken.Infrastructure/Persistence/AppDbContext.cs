@@ -9,12 +9,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<User> Users => Set<User>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
+    public DbSet<Ingredient> Ingredients => Set<Ingredient>();
+    public DbSet<IngredientTag> IngredientTags => Set<IngredientTag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureBaseEntity<User>(modelBuilder);
         ConfigureBaseEntity<Tag>(modelBuilder);
         ConfigureBaseEntity<StorageLocation>(modelBuilder);
+        ConfigureBaseEntity<Ingredient>(modelBuilder);
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -37,6 +40,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(l => l.Name).IsUnique();
             entity.Property(l => l.Name).HasMaxLength(100).IsRequired();
             entity.Property(l => l.Description).HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<Ingredient>(entity =>
+        {
+            entity.HasIndex(i => i.Title).IsUnique();
+            entity.Property(i => i.Title).HasMaxLength(200).IsRequired();
+            entity.Property(i => i.Description).HasMaxLength(1000);
+            entity.Property(i => i.CustomUnitDescription).HasMaxLength(50);
+            entity.Property(i => i.Barcode).HasMaxLength(50);
+            entity.Property(i => i.StoreUrl).HasMaxLength(500);
+            entity.Property(i => i.Unit).HasConversion<string>().HasMaxLength(20);
+            entity.Property(i => i.AmountAvailable).HasPrecision(18, 4);
+            entity.Property(i => i.AmountTotal).HasPrecision(18, 4);
+
+            entity.HasOne(i => i.StorageLocation)
+                .WithMany()
+                .HasForeignKey(i => i.StorageLocationId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<IngredientTag>(entity =>
+        {
+            entity.HasKey(it => new { it.IngredientId, it.TagId });
+
+            entity.HasOne(it => it.Ingredient)
+                .WithMany(i => i.IngredientTags)
+                .HasForeignKey(it => it.IngredientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(it => it.Tag)
+                .WithMany()
+                .HasForeignKey(it => it.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
