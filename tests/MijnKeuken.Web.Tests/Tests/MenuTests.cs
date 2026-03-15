@@ -21,7 +21,7 @@ public class MenuTests : PlaywrightTestBase
 
         await page.Locator(".mud-drawer").HoverAsync();
         await page.WaitForTimeoutAsync(500);
-        await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Menu" }).ClickAsync();
+        await page.Locator(".mud-drawer").GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Menu" }).ClickAsync();
 
         await page.Locator(".mud-table").WaitForAsync(new() { Timeout = 10000 });
 
@@ -32,7 +32,7 @@ public class MenuTests : PlaywrightTestBase
     {
         await page.Locator(".mud-drawer").HoverAsync();
         await page.WaitForTimeoutAsync(500);
-        await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Menu" }).ClickAsync();
+        await page.Locator(".mud-drawer").GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Menu" }).ClickAsync();
         await page.Locator(".mud-table").WaitForAsync(new() { Timeout = 10000 });
     }
 

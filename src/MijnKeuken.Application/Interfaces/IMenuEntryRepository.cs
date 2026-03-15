@@ -1,3 +1,4 @@
+using MijnKeuken.Application.Dashboard.DTOs;
 using MijnKeuken.Domain.Entities;
 
 namespace MijnKeuken.Application.Interfaces;
@@ -10,4 +11,7 @@ public interface IMenuEntryRepository
     Task AddAsync(MenuEntry entry, CancellationToken ct = default);
     Task UpdateAsync(MenuEntry entry, CancellationToken ct = default);
     Task DeleteAsync(MenuEntry entry, CancellationToken ct = default);
+    Task<List<RecipeUsageStatDto>> GetTopScheduledRecipesAsync(int count, CancellationToken ct = default);
+    Task<List<IngredientUsageStatDto>> GetTopUsedIngredientsAsync(int count, CancellationToken ct = default);
+    Task<NextDeliveryDto?> GetNextDeliveryAsync(CancellationToken ct = default);
 }

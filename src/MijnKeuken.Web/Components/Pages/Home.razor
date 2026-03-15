@@ -1,6 +1,146 @@
 ﻿@page "/"
+@using MijnKeuken.Application.Dashboard.DTOs
+@using MijnKeuken.Web.Services
+@using MudBlazor
+@inject IDashboardService DashboardService
+@inject NavigationManager Navigation
 
 <PageTitle>Dashboard</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Welkom bij MijnKeuken</MudText>
-<MudText Typo="Typo.body1" Class="mud-text-secondary">Uw complete oplossing voor een keuken op maat.</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudText Typo="Typo.h3" GutterBottom="true">Welkom bij MijnKeuken</MudText>
+    <MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">Uw complete oplossing voor een keuken op maat.</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else
+    {
+        @if (_stats.NextDelivery is not null)
+        {
+            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border:1px solid var(--mud-palette-lines-default);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Color="Color.Info" Size="Size.Large" />
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6">Volgende bezorging</MudText>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudText Typo="Typo.body1" Style="font-weight:600;">
+                                @_stats.NextDelivery.Date.ToString("dddd d MMMM yyyy", _nl)
+                            </MudText>
+                            @if (!string.IsNullOrWhiteSpace(_stats.NextDelivery.Note))
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Tertiary">
+                                    — @_stats.NextDelivery.Note
+                                </MudText>
+                            }
+                        </MudStack>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        }
+
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="0" Class="pa-4" Style="border:1px solid var(--mud-palette-lines-default);">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Rounded.MenuBook" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">Top 5 recepten</MudText>
+                    </MudStack>
+                    @if (_stats.TopRecipes.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Tertiary" Style="font-style:italic;">
+                            Nog geen recepten ingepland.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var (recipe, index) in _stats.TopRecipes.Select((r, i) => (r, i)))
+                            {
+                                <MudListItem T="string" Icon="@RankIcon(index)" IconColor="@RankColor(index)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudLink Href="@($"/recipes")" Typo="Typo.body2" Color="Color.Inherit" Underline="Underline.Hover">
+                                            @recipe.RecipeTitle
+                                        </MudLink>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
+                                            @recipe.ScheduleCount×
+                                        </MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="0" Class="pa-4" Style="border:1px solid var(--mud-palette-lines-default);">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Rounded.Egg" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6">Top 5 ingrediënten</MudText>
+                    </MudStack>
+                    @if (_stats.TopIngredients.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Tertiary" Style="font-style:italic;">
+                            Nog geen ingrediënten gebruikt.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var (ingredient, index) in _stats.TopIngredients.Select((i, idx) => (i, idx)))
+                            {
+                                <MudListItem T="string" Icon="@RankIcon(index)" IconColor="@RankColor(index)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudLink Href="@($"/ingredients")" Typo="Typo.body2" Color="Color.Inherit" Underline="Underline.Hover">
+                                            @ingredient.IngredientName
+                                        </MudLink>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary">
+                                            @ingredient.UsageCount×
+                                        </MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _nl = new("nl-NL");
+    private bool _loading = true;
+    private DashboardStatsDto _stats = new([], [], null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _stats = await DashboardService.GetStatsAsync();
+        }
+        catch
+        {
+            // Stats unavailable (e.g. not logged in yet)
+        }
+        _loading = false;
+    }
+
+    private static string RankIcon(int index) => index switch
+    {
+        0 => Icons.Material.Rounded.EmojiEvents,
+        1 => Icons.Material.Rounded.MilitaryTech,
+        2 => Icons.Material.Rounded.WorkspacePremium,
+        _ => Icons.Material.Rounded.Tag
+    };
+
+    private static Color RankColor(int index) => index switch
+    {
+        0 => Color.Warning,
+        1 => Color.Default,
+        2 => Color.Tertiary,
+        _ => Color.Default
+    };
+}
