@@ -11,6 +11,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<IngredientTag> IngredientTags => Set<IngredientTag>();
+    public DbSet<Recipe> Recipes => Set<Recipe>();
+    public DbSet<RecipeTag> RecipeTags => Set<RecipeTag>();
+    public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         ConfigureBaseEntity<Tag>(modelBuilder);
         ConfigureBaseEntity<StorageLocation>(modelBuilder);
         ConfigureBaseEntity<Ingredient>(modelBuilder);
+        ConfigureBaseEntity<Recipe>(modelBuilder);
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -72,6 +76,48 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(it => it.Tag)
                 .WithMany()
                 .HasForeignKey(it => it.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Recipe>(entity =>
+        {
+            entity.HasIndex(r => r.Title).IsUnique();
+            entity.Property(r => r.Title).HasMaxLength(200).IsRequired();
+            entity.Property(r => r.Description).HasMaxLength(1000);
+            entity.Property(r => r.Plan).HasMaxLength(10000);
+        });
+
+        modelBuilder.Entity<RecipeTag>(entity =>
+        {
+            entity.HasKey(rt => new { rt.RecipeId, rt.TagId });
+
+            entity.HasOne(rt => rt.Recipe)
+                .WithMany(r => r.RecipeTags)
+                .HasForeignKey(rt => rt.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rt => rt.Tag)
+                .WithMany()
+                .HasForeignKey(rt => rt.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RecipeIngredient>(entity =>
+        {
+            entity.HasKey(ri => new { ri.RecipeId, ri.IngredientId });
+
+            entity.Property(ri => ri.Amount).HasPrecision(18, 4);
+            entity.Property(ri => ri.Unit).HasConversion<string>().HasMaxLength(20);
+            entity.Property(ri => ri.CustomUnitDescription).HasMaxLength(50);
+
+            entity.HasOne(ri => ri.Recipe)
+                .WithMany(r => r.RecipeIngredients)
+                .HasForeignKey(ri => ri.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ri => ri.Ingredient)
+                .WithMany()
+                .HasForeignKey(ri => ri.IngredientId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

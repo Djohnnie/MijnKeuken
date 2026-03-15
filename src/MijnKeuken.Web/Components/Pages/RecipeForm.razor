@@ -1,0 +1,293 @@
+@page "/recipes/new"
+@page "/recipes/{Id:guid}/edit"
+@using MijnKeuken.Application.Ingredients.DTOs
+@using MijnKeuken.Application.Tags.DTOs
+@using MijnKeuken.Domain.Entities
+@using Markdig
+@using MudBlazor
+@using MijnKeuken.Web.Services
+@inject IRecipeService RecipeService
+@inject ITagService TagService
+@inject IIngredientService IngredientService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_isEdit ? "Recept bewerken" : "Nieuw recept")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else if (_notFound)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Recept niet gevonden.</MudAlert>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Rounded.ArrowBack"
+                   OnClick="NavigateBack" Class="mt-3">Terug naar recepten</MudButton>
+    }
+    else
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+            <MudIconButton Icon="@Icons.Material.Rounded.ArrowBack" Size="Size.Small"
+                           OnClick="NavigateBack" />
+            <MudText Typo="Typo.h4">@(_isEdit ? "Recept bewerken" : "Nieuw recept")</MudText>
+        </MudStack>
+
+        <MudTextField T="string" @bind-Value="_title" Label="Titel" Required="true"
+                      RequiredError="Titel is verplicht" Variant="Variant.Outlined"
+                      Immediate="true" Class="mb-3" Margin="Margin.Dense" />
+
+        <MudTextField T="string" @bind-Value="_description" Label="Omschrijving" Variant="Variant.Outlined"
+                      Margin="Margin.Dense" Class="mb-3" Lines="2" />
+
+        <MudText Typo="Typo.body2" Class="mb-1">Plan (Markdown)</MudText>
+        <MudTabs Elevation="0" Border="true" ApplyEffectsToContainer="true" Class="mb-3" MinimumTabWidth="80px">
+            <MudTabPanel Text="Bewerken" Icon="@Icons.Material.Rounded.Edit">
+                <MudTextField T="string" @bind-Value="_plan" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Lines="10" Immediate="true"
+                              Placeholder="Schrijf je bereidingswijze in Markdown..." />
+            </MudTabPanel>
+            <MudTabPanel Text="Voorbeeld" Icon="@Icons.Material.Rounded.Visibility">
+                <div class="markdown-preview pa-2" style="min-height:200px;border:1px solid var(--mud-palette-lines-default);border-radius:4px;">
+                    @((MarkupString)RenderMarkdown(_plan))
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+
+        <MudText Typo="Typo.body2" Class="mb-1">Tags</MudText>
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-3">
+            @foreach (var tag in _availableTags)
+            {
+                var isSelected = _selectedTagIds.Contains(tag.Id);
+                <MudChip T="string" Size="Size.Small"
+                         Style="@(isSelected ? $"background:{tag.Color};color:white;" : "")"
+                         Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                         OnClick="() => ToggleTag(tag.Id)">
+                    @tag.Name
+                </MudChip>
+            }
+            @if (!_availableTags.Any())
+            {
+                <MudText Typo="Typo.caption" Color="Color.Tertiary">Geen recept-tags beschikbaar</MudText>
+            }
+        </MudStack>
+
+        <MudText Typo="Typo.body2" Class="mb-1">Ingrediënten</MudText>
+        <MudStack Spacing="2" Class="mb-3">
+            @foreach (var item in _selectedIngredients)
+            {
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.body2" Style="min-width:120px;">@item.IngredientTitle</MudText>
+                    <MudNumericField T="int" @bind-Value="item.Amount" Label="Hoeveelheid"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Style="max-width:100px;" />
+                    <MudTextField T="string" Value="@FormatUnitType(item.Unit)" Label="Eenheid"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="true"
+                                  Style="max-width:120px;" />
+                    <MudTextField T="string" @bind-Value="item.CustomUnitDescription" Label="Eenheidomschrijving"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="bijv. fijngesneden"
+                                  Style="max-width:180px;" />
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="() => RemoveIngredient(item)" />
+                </MudStack>
+            }
+
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudAutocomplete T="IngredientDto" @bind-Value="_selectedIngredientToAdd"
+                                 Label="Ingrediënt toevoegen" SearchFunc="SearchIngredients"
+                                 ToStringFunc="@(i => i?.Title ?? "")"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                 Style="max-width:300px;" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Add" Size="Size.Small" Color="Color.Primary"
+                               OnClick="AddIngredient" Disabled="_selectedIngredientToAdd is null" />
+            </MudStack>
+        </MudStack>
+
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+        }
+
+        <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="mb-4">
+            <MudButton OnClick="NavigateBack" Size="Size.Small">Annuleren</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                       OnClick="Submit" Disabled="@(string.IsNullOrWhiteSpace(_title) || _saving)">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                @(_isEdit ? "Opslaan" : "Aanmaken")
+            </MudButton>
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    [Parameter] public Guid? Id { get; set; }
+
+    private bool _isEdit;
+    private bool _loading = true;
+    private bool _notFound;
+    private bool _saving;
+    private string _title = string.Empty;
+    private string _description = string.Empty;
+    private string _plan = string.Empty;
+    private List<Guid> _selectedTagIds = [];
+    private List<RecipeIngredientModel> _selectedIngredients = [];
+    private List<TagDto> _availableTags = [];
+    private List<IngredientDto> _allIngredients = [];
+    private IngredientDto? _selectedIngredientToAdd;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isEdit = Id.HasValue;
+
+        var tagsTask = TagService.GetAllAsync();
+        var ingredientsTask = IngredientService.GetAllAsync();
+
+        if (_isEdit)
+        {
+            var recipeTask = RecipeService.GetByIdAsync(Id!.Value);
+            await Task.WhenAll(tagsTask, ingredientsTask, recipeTask);
+
+            var recipe = recipeTask.Result;
+            if (recipe is null)
+            {
+                _notFound = true;
+                _loading = false;
+                return;
+            }
+
+            _title = recipe.Title;
+            _description = recipe.Description;
+            _plan = recipe.Plan;
+            _selectedTagIds = recipe.Tags.Select(t => t.TagId).ToList();
+            _selectedIngredients = recipe.Ingredients.Select(i => new RecipeIngredientModel
+            {
+                IngredientId = i.IngredientId,
+                IngredientTitle = i.IngredientTitle,
+                Amount = (int)i.Amount,
+                Unit = i.Unit,
+                CustomUnitDescription = i.CustomUnitDescription
+            }).ToList();
+        }
+        else
+        {
+            await Task.WhenAll(tagsTask, ingredientsTask);
+        }
+
+        _availableTags = tagsTask.Result.Where(t => t.Type == TagType.Recipe).ToList();
+        _allIngredients = ingredientsTask.Result;
+        _loading = false;
+    }
+
+    private static string RenderMarkdown(string? markdown)
+        => string.IsNullOrWhiteSpace(markdown)
+            ? "<em style='color:gray;'>Geen inhoud</em>"
+            : Markdown.ToHtml(markdown, Pipeline);
+
+    private static string FormatUnitType(UnitType unit) => unit switch
+    {
+        UnitType.Grams => "Gram",
+        UnitType.Units => "Stuks",
+        UnitType.Percentage => "Percentage",
+        _ => unit.ToString()
+    };
+
+    private void ToggleTag(Guid tagId)
+    {
+        if (_selectedTagIds.Contains(tagId))
+            _selectedTagIds.Remove(tagId);
+        else
+            _selectedTagIds.Add(tagId);
+    }
+
+    private Task<IEnumerable<IngredientDto>> SearchIngredients(string? value, CancellationToken ct)
+    {
+        var alreadyAdded = _selectedIngredients.Select(i => i.IngredientId).ToHashSet();
+        var filtered = _allIngredients
+            .Where(i => !alreadyAdded.Contains(i.Id))
+            .Where(i => string.IsNullOrEmpty(value)
+                || i.Title.Contains(value, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(filtered);
+    }
+
+    private void AddIngredient()
+    {
+        if (_selectedIngredientToAdd is null) return;
+        if (_selectedIngredients.Any(i => i.IngredientId == _selectedIngredientToAdd.Id)) return;
+
+        _selectedIngredients.Add(new RecipeIngredientModel
+        {
+            IngredientId = _selectedIngredientToAdd.Id,
+            IngredientTitle = _selectedIngredientToAdd.Title,
+            Amount = 1,
+            Unit = _selectedIngredientToAdd.Unit,
+            CustomUnitDescription = string.Empty
+        });
+        _selectedIngredientToAdd = null;
+    }
+
+    private void RemoveIngredient(RecipeIngredientModel item)
+        => _selectedIngredients.Remove(item);
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_title)) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        var request = new CreateRecipeRequest(
+            _title.Trim(),
+            _description?.Trim() ?? string.Empty,
+            _plan ?? string.Empty,
+            _selectedTagIds.ToList(),
+            _selectedIngredients.Select(i =>
+                new RecipeIngredientRequest(i.IngredientId, i.Amount, i.Unit, i.CustomUnitDescription ?? string.Empty)).ToList());
+
+        if (_isEdit)
+        {
+            var result = await RecipeService.UpdateAsync(Id!.Value, request);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Recept opgeslagen", Severity.Success);
+                NavigateBack();
+            }
+            else
+            {
+                _errorMessage = result.Error;
+            }
+        }
+        else
+        {
+            var result = await RecipeService.CreateAsync(request);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Recept aangemaakt", Severity.Success);
+                NavigateBack();
+            }
+            else
+            {
+                _errorMessage = result.Error;
+            }
+        }
+
+        _saving = false;
+    }
+
+    private void NavigateBack() => Navigation.NavigateTo("/recipes");
+
+    public class RecipeIngredientModel
+    {
+        public Guid IngredientId { get; set; }
+        public string IngredientTitle { get; set; } = string.Empty;
+        public int Amount { get; set; }
+        public UnitType Unit { get; set; }
+        public string CustomUnitDescription { get; set; } = string.Empty;
+    }
+}

@@ -165,6 +165,9 @@ public class WebAppFixture
             await conn.OpenAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
+                IF OBJECT_ID('RecipeIngredients', 'U') IS NOT NULL DELETE FROM RecipeIngredients;
+                IF OBJECT_ID('RecipeTags', 'U') IS NOT NULL DELETE FROM RecipeTags;
+                IF OBJECT_ID('Recipes', 'U') IS NOT NULL DELETE FROM Recipes;
                 IF OBJECT_ID('IngredientTags', 'U') IS NOT NULL DELETE FROM IngredientTags;
                 IF OBJECT_ID('Ingredients', 'U') IS NOT NULL DELETE FROM Ingredients;
                 IF OBJECT_ID('StorageLocations', 'U') IS NOT NULL DELETE FROM StorageLocations;

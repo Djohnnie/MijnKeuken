@@ -1,0 +1,20 @@
+using MijnKeuken.Application.Common;
+using MijnKeuken.Application.Recipes.DTOs;
+using MijnKeuken.Domain.Entities;
+
+namespace MijnKeuken.Web.Services;
+
+public interface IRecipeService
+{
+    Task<List<RecipeDto>> GetAllAsync();
+    Task<RecipeDto?> GetByIdAsync(Guid id);
+    Task<Result<Guid>> CreateAsync(CreateRecipeRequest request);
+    Task<Result> UpdateAsync(Guid id, CreateRecipeRequest request);
+    Task<Result> DeleteAsync(Guid id);
+}
+
+public record RecipeIngredientRequest(Guid IngredientId, decimal Amount, UnitType Unit, string CustomUnitDescription);
+
+public record CreateRecipeRequest(
+    string Title, string Description, string Plan,
+    List<Guid> TagIds, List<RecipeIngredientRequest> Ingredients);

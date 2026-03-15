@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IStorageLocationRepository, StorageLocationRepository>();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
+        services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")

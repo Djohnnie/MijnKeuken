@@ -1,0 +1,148 @@
+@page "/recipes"
+@using MijnKeuken.Application.Recipes.DTOs
+@using MijnKeuken.Application.Tags.DTOs
+@using MijnKeuken.Domain.Entities
+@using MijnKeuken.Web.Services
+@inject IRecipeService RecipeService
+@inject ITagService TagService
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<PageTitle>Recepten</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h4">Recepten</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Rounded.Add" OnClick="NavigateToCreate">
+            Nieuw recept
+        </MudButton>
+    </MudStack>
+
+    @if (_recipes is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else
+    {
+        <MudStack Row="true" Spacing="2" Class="mb-3" AlignItems="AlignItems.End">
+            <MudTextField T="string" @bind-Value="_searchString" Placeholder="Zoeken op titel..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                          IconSize="Size.Small" Immediate="true" Margin="Margin.Dense"
+                          Variant="Variant.Outlined" Style="max-width:300px;" />
+            <MudSelect T="Guid?" @bind-Value="_tagFilter" Label="Tag" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" Style="max-width:200px;">
+                @foreach (var tag in _recipeTags)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)tag.Id)">@tag.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+
+        <MudTable Items="@FilteredRecipes" Hover="true" Dense="true" Elevation="0" Class="border-table">
+            <HeaderContent>
+                <MudTh>Titel</MudTh>
+                <MudTh>Omschrijving</MudTh>
+                <MudTh>Tags</MudTh>
+                <MudTh>Ingrediënten</MudTh>
+                <MudTh Style="width:150px;">Acties</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Titel">@context.Title</MudTd>
+                <MudTd DataLabel="Omschrijving">
+                    @(context.Description.Length > 80 ? context.Description[..80] + "…" : context.Description)
+                </MudTd>
+                <MudTd DataLabel="Tags">
+                    @foreach (var tag in context.Tags)
+                    {
+                        <MudChip T="string" Size="Size.Small" Style="@($"background:{tag.Color};color:white;")">
+                            @tag.Name
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Ingrediënten">
+                    @context.Ingredients.Count
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="() => NavigateToEdit(context)" />
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="() => ConfirmDelete(context)" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" RowsPerPageString="Rijen per pagina:" />
+            </PagerContent>
+        </MudTable>
+    }
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private List<RecipeDto>? _recipes;
+    private List<TagDto> _recipeTags = [];
+    private string _searchString = string.Empty;
+    private Guid? _tagFilter;
+    private string? _errorMessage;
+
+    private IEnumerable<RecipeDto> FilteredRecipes => _recipes?.Where(FilterFunc) ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var recipesTask = RecipeService.GetAllAsync();
+        var tagsTask = TagService.GetAllAsync();
+
+        await Task.WhenAll(recipesTask, tagsTask);
+
+        _recipes = recipesTask.Result;
+        _recipeTags = tagsTask.Result.Where(t => t.Type == TagType.Recipe).ToList();
+    }
+
+    private bool FilterFunc(RecipeDto recipe)
+    {
+        if (!string.IsNullOrWhiteSpace(_searchString)
+            && !recipe.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (_tagFilter.HasValue && !recipe.Tags.Any(t => t.TagId == _tagFilter.Value))
+            return false;
+        return true;
+    }
+
+    private void NavigateToCreate() => Navigation.NavigateTo("/recipes/new");
+
+    private void NavigateToEdit(RecipeDto recipe) => Navigation.NavigateTo($"/recipes/{recipe.Id}/edit");
+
+    private async Task ConfirmDelete(RecipeDto recipe)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Weet je zeker dat je het recept \"{recipe.Title}\" wilt verwijderen?" },
+            { x => x.ConfirmText, "Verwijderen" },
+            { x => x.ConfirmColor, Color.Error }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Recept verwijderen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _errorMessage = null;
+            var deleteResult = await RecipeService.DeleteAsync(recipe.Id);
+            if (deleteResult.IsSuccess)
+                await LoadData();
+            else
+                _errorMessage = deleteResult.Error;
+        }
+    }
+}
