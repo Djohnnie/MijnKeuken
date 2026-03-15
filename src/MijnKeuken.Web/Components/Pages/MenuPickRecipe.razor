@@ -1,0 +1,203 @@
+@page "/menu/pick-recipe/{DateStr}"
+@using MijnKeuken.Application.Menu.DTOs
+@using MijnKeuken.Application.Recipes.DTOs
+@using MijnKeuken.Application.Tags.DTOs
+@using MijnKeuken.Domain.Entities
+@using MijnKeuken.Web.Services
+@using MudBlazor
+@inject IRecipeService RecipeService
+@inject ITagService TagService
+@inject IMenuService MenuService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Recept kiezen</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudIconButton Icon="@Icons.Material.Rounded.ArrowBack" OnClick="GoBack" />
+        <MudText Typo="Typo.h5">
+            Recept kiezen voor @_date.ToString("dddd d MMMM", _nl)
+        </MudText>
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border:1px solid var(--mud-palette-lines-default);">
+        <MudStack Spacing="3">
+            <MudTextField T="string" @bind-Value="_searchText" Label="Zoeken op titel of beschrijving"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                          Immediate="true" DebounceInterval="200" />
+
+            <MudStack>
+                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="mb-1">Filteren op tags</MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    @foreach (var tag in _allTags)
+                    {
+                        var isSelected = _selectedTagIds.Contains(tag.Id);
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@(isSelected ? $"background-color:{tag.Color};color:white;" : $"border:1px solid {tag.Color};color:{tag.Color};background-color:transparent;")"
+                                 Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                                 OnClick="() => ToggleTag(tag.Id)"
+                                 Text="@tag.Name" />
+                    }
+                </MudStack>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        var filtered = FilteredRecipes;
+        <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="mb-2">
+            @filtered.Count recept(en) gevonden
+        </MudText>
+
+        @if (filtered.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                Geen recepten gevonden. Pas de zoekterm of filters aan.
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                @foreach (var recipe in filtered)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="0" Style="border:1px solid var(--mud-palette-lines-default);cursor:pointer;"
+                                 @onclick="() => SelectRecipe(recipe)" Class="recipe-card">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.subtitle1">@recipe.Title</MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                @if (!string.IsNullOrWhiteSpace(recipe.Description))
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Tertiary" Class="mb-2"
+                                             Style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                                        @recipe.Description
+                                    </MudText>
+                                }
+                                @if (recipe.Tags.Count > 0)
+                                {
+                                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                        @foreach (var tag in recipe.Tags)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                                     Style="@($"background-color:{tag.Color};color:white;")"
+                                                     Text="@tag.Name" />
+                                        }
+                                    </MudStack>
+                                }
+                                @if (recipe.Ingredients.Count > 0)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="mt-2">
+                                        @recipe.Ingredients.Count ingrediënt(en)
+                                    </MudText>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    }
+</MudContainer>
+
+<style>
+    .recipe-card:hover {
+        outline: 2px solid var(--mud-palette-primary);
+        border-radius: 4px;
+    }
+</style>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _nl = new("nl-NL");
+
+    [Parameter] public string DateStr { get; set; } = string.Empty;
+
+    private DateOnly _date;
+    private bool _loading = true;
+    private string _searchText = string.Empty;
+    private List<RecipeDto> _allRecipes = [];
+    private List<TagDto> _allTags = [];
+    private HashSet<Guid> _selectedTagIds = [];
+    private MenuEntryDto? _existingEntry;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _date = DateOnly.ParseExact(DateStr, "yyyy-MM-dd");
+
+        var recipesTask = RecipeService.GetAllAsync();
+        var tagsTask = TagService.GetAllAsync();
+        var entriesTask = MenuService.GetByRangeAsync(_date, _date);
+        await Task.WhenAll(recipesTask, tagsTask, entriesTask);
+
+        _allRecipes = recipesTask.Result;
+        _allTags = tagsTask.Result.Where(t => t.Type == TagType.Recipe).ToList();
+        _existingEntry = entriesTask.Result.FirstOrDefault();
+
+        _loading = false;
+    }
+
+    private List<RecipeDto> FilteredRecipes
+    {
+        get
+        {
+            var result = _allRecipes.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_searchText))
+            {
+                result = result.Where(r =>
+                    r.Title.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                    r.Description.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (_selectedTagIds.Count > 0)
+            {
+                result = result.Where(r =>
+                    _selectedTagIds.All(tagId => r.Tags.Any(t => t.TagId == tagId)));
+            }
+
+            return result.OrderBy(r => r.Title).ToList();
+        }
+    }
+
+    private void ToggleTag(Guid tagId)
+    {
+        if (!_selectedTagIds.Remove(tagId))
+            _selectedTagIds.Add(tagId);
+    }
+
+    private async Task SelectRecipe(RecipeDto recipe)
+    {
+        var request = new UpsertMenuEntryRequest(
+            _date,
+            recipe.Id,
+            _existingEntry?.HasDelivery ?? false,
+            _existingEntry?.DeliveryNote ?? string.Empty,
+            _existingEntry?.IsConsumed ?? false,
+            _existingEntry?.IsEatingOut ?? false);
+
+        var result = await MenuService.UpsertAsync(request);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add($"'{recipe.Title}' toegevoegd aan {_date.ToString("d MMM", _nl)}", Severity.Success);
+            Navigation.NavigateTo("/menu");
+        }
+        else
+        {
+            Snackbar.Add("Fout bij opslaan", Severity.Error);
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/menu");
+    }
+}

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MijnKeuken.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using MijnKeuken.Infrastructure.Persistence;
 namespace MijnKeuken.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260315160554_AddMenuEntries")]
+    partial class AddMenuEntries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -125,12 +128,6 @@ namespace MijnKeuken.Infrastructure.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("HasDelivery")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsConsumed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsEatingOut")
                         .HasColumnType("bit");
 
                     b.Property<Guid?>("RecipeId")

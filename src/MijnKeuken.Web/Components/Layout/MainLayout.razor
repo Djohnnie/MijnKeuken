@@ -17,7 +17,9 @@
                 <MudAppBar Elevation="0" Dense="true" Class="border-b mud-border-lines-default">
                     <MudIconButton Icon="@Icons.Material.Rounded.Menu" Color="Color.Inherit" Edge="Edge.Start"
                                    Size="Size.Small" OnClick="@ToggleDrawer" />
-                    <MudText Typo="Typo.h6" Class="ml-2" Style="font-weight:600;letter-spacing:-.5px;">MijnKeuken</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/"
+                               Style="text-transform:none;font-weight:600;letter-spacing:-.5px;font-size:1.25rem;"
+                               Class="ml-2 pa-0">MijnKeuken</MudButton>
                     <MudSpacer />
                     <MudTooltip Text="@(_isDarkMode ? "Licht thema" : "Donker thema")" Delay="300">
                         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Rounded.LightMode : Icons.Material.Rounded.DarkMode)"

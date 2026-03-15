@@ -99,15 +99,22 @@ public class WebAppFixture
             }
         }
 
-        // Register seed user via API (first user = auto-approved)
+        // Register seed user via API (first user = auto-approved).
+        // If user already exists (re-run), verify by logging in instead of failing.
         var registerResponse = await httpClient.PostAsJsonAsync(
             $"{BaseUrl}/api/auth/register",
             new { Username = SeedUsername, Password = SeedPassword, Email = "admin@test.nl" });
 
         if (!registerResponse.IsSuccessStatusCode)
         {
-            var body = await registerResponse.Content.ReadAsStringAsync();
-            throw new Exception($"Failed to register seed user: {registerResponse.StatusCode} - {body}");
+            var loginResponse = await httpClient.PostAsJsonAsync(
+                $"{BaseUrl}/api/auth/login",
+                new { Username = SeedUsername, Password = SeedPassword });
+            if (!loginResponse.IsSuccessStatusCode)
+            {
+                var body = await registerResponse.Content.ReadAsStringAsync();
+                throw new Exception($"Failed to register/login seed user: {registerResponse.StatusCode} - {body}");
+            }
         }
 
         PlaywrightInstance = await Playwright.CreateAsync();
@@ -165,6 +172,7 @@ public class WebAppFixture
             await conn.OpenAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
+                IF OBJECT_ID('MenuEntries', 'U') IS NOT NULL DELETE FROM MenuEntries;
                 IF OBJECT_ID('RecipeIngredients', 'U') IS NOT NULL DELETE FROM RecipeIngredients;
                 IF OBJECT_ID('RecipeTags', 'U') IS NOT NULL DELETE FROM RecipeTags;
                 IF OBJECT_ID('Recipes', 'U') IS NOT NULL DELETE FROM Recipes;

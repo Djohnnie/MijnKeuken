@@ -1,0 +1,375 @@
+@page "/menu"
+@using MijnKeuken.Application.Menu.DTOs
+@using MijnKeuken.Web.Services
+@using MudBlazor
+@inject IMenuService MenuService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<PageTitle>Menu</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h4">Menu</MudText>
+        <MudSpacer />
+        <MudSelect T="DayOfWeek" Value="_anchorDay" ValueChanged="OnAnchorDayChanged" Label="Startdag"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:140px;" Dense="true">
+            <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Monday">Maandag</MudSelectItem>
+            <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Tuesday">Dinsdag</MudSelectItem>
+            <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Wednesday">Woensdag</MudSelectItem>
+            <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Thursday">Donderdag</MudSelectItem>
+            <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Friday">Vrijdag</MudSelectItem>
+            <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Saturday">Zaterdag</MudSelectItem>
+            <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Sunday">Zondag</MudSelectItem>
+        </MudSelect>
+        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+            <MudButton OnClick="PreviousPeriod" StartIcon="@Icons.Material.Rounded.ChevronLeft">Vorige</MudButton>
+            <MudButton OnClick="GoToToday">Vandaag</MudButton>
+            <MudButton OnClick="NextPeriod" EndIcon="@Icons.Material.Rounded.ChevronRight">Volgende</MudButton>
+        </MudButtonGroup>
+    </MudStack>
+
+    <MudText Typo="Typo.subtitle1" Class="mb-3" Color="Color.Tertiary">
+        @_startDate.ToString("d MMMM yyyy", _nl) – @_endDate.ToString("d MMMM yyyy", _nl)
+    </MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else
+    {
+        <MudTable T="DayModel" Items="_days" Hover="true" Dense="true" Elevation="0"
+                  Style="border:1px solid var(--mud-palette-lines-default);"
+                  RowClassFunc="GetRowClass">
+            <HeaderContent>
+                <MudTh Style="width:120px;">Dag</MudTh>
+                <MudTh>Recept</MudTh>
+                <MudTh Style="width:200px;text-align:right;">Acties</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                @{
+                    var isToday = context.Date == DateOnly.FromDateTime(DateTime.Today);
+                }
+                <MudTd DataLabel="Dag">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body2" Style="@(isToday ? "font-weight:700;" : "")">
+                            @context.Date.ToString("ddd", _nl)
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                            @context.Date.ToString("d MMM", _nl)
+                        </MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Recept">
+                    @if (context.IsEatingOut)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Tertiary" Style="font-style:italic;">
+                            <MudIcon Icon="@Icons.Material.Rounded.RestaurantMenu" Size="Size.Small" Class="mr-1" Style="vertical-align:middle;" />
+                            Buitenshuis eten
+                        </MudText>
+                    }
+                    else if (context.RecipeTitle is not null)
+                    {
+                        <MudText Typo="Typo.body2"
+                                 Style="@(context.IsConsumed ? "text-decoration:line-through;opacity:0.6;" : "")">
+                            @context.RecipeTitle
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary" Style="font-style:italic;">
+                            Geen recept geselecteerd
+                        </MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Acties" Style="text-align:right;">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.FlexEnd" Spacing="0">
+                        @if (context.RecipeTitle is not null)
+                        {
+                            <MudToggleIconButton Toggled="context.IsConsumed"
+                                                 ToggledChanged="() => ToggleConsumed(context)"
+                                                 Icon="@Icons.Material.Rounded.CheckCircleOutline"
+                                                 ToggledIcon="@Icons.Material.Rounded.CheckCircle"
+                                                 Size="Size.Small"
+                                                 Color="Color.Default" ToggledColor="Color.Success"
+                                                 Title="@(context.IsConsumed ? "Markeer als niet gegeten" : "Markeer als gegeten")" />
+                            <MudIconButton Icon="@Icons.Material.Rounded.SwapVert" Size="Size.Small"
+                                           Color="@(_swapSource == context ? Color.Warning : Color.Default)"
+                                           OnClick="() => HandleSwap(context)"
+                                           Title="@(_swapSource is null ? "Selecteer om te wisselen" : "Wissel met geselecteerde dag")" />
+                            <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" Color="Color.Primary"
+                                           OnClick="() => PickRecipe(context)" Title="Ander recept kiezen" />
+                            <MudIconButton Icon="@Icons.Material.Rounded.Clear" Size="Size.Small" Color="Color.Error"
+                                           OnClick="() => ClearRecipe(context)" Title="Recept verwijderen" />
+                        }
+                        else
+                        {
+                            @if (_swapSource is not null)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Rounded.SwapVert" Size="Size.Small" Color="Color.Default"
+                                               OnClick="() => HandleSwap(context)" Title="Wissel met geselecteerde dag" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Rounded.Add" Size="Size.Small" Color="Color.Primary"
+                                           OnClick="() => PickRecipe(context)" Title="Recept kiezen" />
+                        }
+                        <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+                        <MudToggleIconButton Toggled="context.HasDelivery"
+                                             ToggledChanged="() => ToggleDelivery(context)"
+                                             Icon="@Icons.Material.Rounded.LocalShipping"
+                                             ToggledIcon="@Icons.Material.Rounded.LocalShipping"
+                                             Size="Size.Small"
+                                             Color="Color.Default" ToggledColor="Color.Success"
+                                             Title="@DeliveryTooltip(context)" />
+                        <MudToggleIconButton Toggled="context.IsEatingOut"
+                                             ToggledChanged="() => ToggleEatingOut(context)"
+                                             Icon="@Icons.Material.Rounded.RestaurantMenu"
+                                             ToggledIcon="@Icons.Material.Rounded.RestaurantMenu"
+                                             Size="Size.Small"
+                                             Color="Color.Default" ToggledColor="Color.Info"
+                                             Title="@(context.IsEatingOut ? "Niet buitenshuis" : "Buitenshuis eten")" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudContainer>
+
+<style>
+    .menu-day-today td {
+        background-color: rgba(25, 118, 210, 0.18) !important;
+    }
+    .menu-day-weekend td {
+        opacity: 0.75;
+    }
+    .menu-day-swap td {
+        outline: 2px solid var(--mud-palette-warning);
+    }
+    .menu-day-consumed td {
+        background-color: rgba(76, 175, 80, 0.10) !important;
+    }
+    .menu-day-delivery td {
+        background-color: rgba(33, 150, 243, 0.10) !important;
+    }
+    .menu-day-eatingout td {
+        background-color: rgba(156, 39, 176, 0.10) !important;
+    }
+</style>
+
+@code {
+    private static readonly System.Globalization.CultureInfo _nl = new("nl-NL");
+
+    private DateOnly _startDate;
+    private DateOnly _endDate;
+    private DayOfWeek _anchorDay = DayOfWeek.Friday;
+    private bool _loading = true;
+    private List<DayModel> _days = [];
+    private DayModel? _swapSource;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SetPeriodAroundToday();
+        await LoadData();
+    }
+
+    private string GetRowClass(DayModel day, int _)
+    {
+        var isToday = day.Date == DateOnly.FromDateTime(DateTime.Today);
+        var isWeekend = day.Date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+        return DayCssClass(day, isToday, isWeekend);
+    }
+
+    private string DayCssClass(DayModel day, bool isToday, bool isWeekend)
+    {
+        var classes = new List<string>();
+        if (isToday) classes.Add("menu-day-today");
+        if (isWeekend) classes.Add("menu-day-weekend");
+        if (_swapSource == day) classes.Add("menu-day-swap");
+        if (day.IsEatingOut) classes.Add("menu-day-eatingout");
+        else if (day.IsConsumed) classes.Add("menu-day-consumed");
+        if (day.HasDelivery) classes.Add("menu-day-delivery");
+        return string.Join(' ', classes);
+    }
+
+    private string DeliveryTooltip(DayModel day)
+    {
+        if (day.HasDelivery && !string.IsNullOrWhiteSpace(day.DeliveryNote))
+            return $"Bezorging: {day.DeliveryNote}";
+        return day.HasDelivery ? "Bezorging (klik om uit te schakelen)" : "Bezorging inschakelen";
+    }
+
+    private void SetPeriodAroundToday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        _startDate = GetPreviousOrCurrent(today, _anchorDay);
+        _endDate = _startDate.AddDays(13);
+    }
+
+    private static DateOnly GetPreviousOrCurrent(DateOnly from, DayOfWeek target)
+    {
+        var diff = ((int)from.DayOfWeek - (int)target + 7) % 7;
+        return from.AddDays(-diff);
+    }
+
+    private async Task OnAnchorDayChanged(DayOfWeek newDay)
+    {
+        _anchorDay = newDay;
+        SetPeriodAroundToday();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        var entries = await MenuService.GetByRangeAsync(_startDate, _endDate);
+
+        _days = [];
+        for (var date = _startDate; date <= _endDate; date = date.AddDays(1))
+        {
+            var entry = entries.FirstOrDefault(e => e.Date == date);
+            _days.Add(new DayModel
+            {
+                Date = date,
+                EntryId = entry?.Id,
+                RecipeId = entry?.RecipeId,
+                RecipeTitle = entry?.RecipeTitle,
+                HasDelivery = entry?.HasDelivery ?? false,
+                DeliveryNote = entry?.DeliveryNote ?? string.Empty,
+                IsConsumed = entry?.IsConsumed ?? false,
+                IsEatingOut = entry?.IsEatingOut ?? false
+            });
+        }
+
+        _loading = false;
+    }
+
+    private async Task PreviousPeriod()
+    {
+        _startDate = _startDate.AddDays(-14);
+        _endDate = _startDate.AddDays(13);
+        await LoadData();
+    }
+
+    private async Task NextPeriod()
+    {
+        _startDate = _startDate.AddDays(14);
+        _endDate = _startDate.AddDays(13);
+        await LoadData();
+    }
+
+    private async Task GoToToday()
+    {
+        SetPeriodAroundToday();
+        await LoadData();
+    }
+
+    private void PickRecipe(DayModel day)
+    {
+        Navigation.NavigateTo($"/menu/pick-recipe/{day.Date:yyyy-MM-dd}");
+    }
+
+    private async Task ClearRecipe(DayModel day)
+    {
+        day.RecipeId = null;
+        day.RecipeTitle = null;
+        day.IsConsumed = false;
+        _swapSource = null;
+        await SaveDay(day);
+    }
+
+    private async Task HandleSwap(DayModel day)
+    {
+        if (_swapSource is null)
+        {
+            _swapSource = day;
+            return;
+        }
+
+        if (_swapSource == day)
+        {
+            _swapSource = null;
+            return;
+        }
+
+        (day.RecipeId, _swapSource.RecipeId) = (_swapSource.RecipeId, day.RecipeId);
+        (day.RecipeTitle, _swapSource.RecipeTitle) = (_swapSource.RecipeTitle, day.RecipeTitle);
+        (day.IsConsumed, _swapSource.IsConsumed) = (_swapSource.IsConsumed, day.IsConsumed);
+
+        var source = _swapSource;
+        _swapSource = null;
+
+        await Task.WhenAll(SaveDay(source), SaveDay(day));
+        Snackbar.Add("Recepten gewisseld", Severity.Success);
+    }
+
+    private async Task ToggleDelivery(DayModel day)
+    {
+        if (day.HasDelivery)
+        {
+            day.HasDelivery = false;
+            day.DeliveryNote = string.Empty;
+            await SaveDay(day);
+        }
+        else
+        {
+            var parameters = new DialogParameters<DeliveryNoteDialog>
+            {
+                { x => x.Note, day.DeliveryNote }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<DeliveryNoteDialog>("Bezorgnotitie", parameters, options);
+            var result = await dialog.Result;
+            if (result is not null && !result.Canceled)
+            {
+                day.HasDelivery = true;
+                day.DeliveryNote = result.Data as string ?? string.Empty;
+                await SaveDay(day);
+            }
+        }
+    }
+
+    private async Task ToggleConsumed(DayModel day)
+    {
+        day.IsConsumed = !day.IsConsumed;
+        await SaveDay(day);
+    }
+
+    private async Task ToggleEatingOut(DayModel day)
+    {
+        day.IsEatingOut = !day.IsEatingOut;
+        await SaveDay(day);
+    }
+
+    private async Task SaveDay(DayModel day)
+    {
+        var result = await MenuService.UpsertAsync(new UpsertMenuEntryRequest(
+            day.Date, day.RecipeId, day.HasDelivery, day.DeliveryNote, day.IsConsumed, day.IsEatingOut));
+
+        if (result.IsSuccess)
+        {
+            if (result.Value != Guid.Empty)
+                day.EntryId = result.Value;
+            else
+                day.EntryId = null;
+        }
+        else
+        {
+            Snackbar.Add(result.Error ?? "Opslaan mislukt", Severity.Error);
+        }
+    }
+
+    private class DayModel
+    {
+        public DateOnly Date { get; set; }
+        public Guid? EntryId { get; set; }
+        public Guid? RecipeId { get; set; }
+        public string? RecipeTitle { get; set; }
+        public bool HasDelivery { get; set; }
+        public string DeliveryNote { get; set; } = string.Empty;
+        public bool IsConsumed { get; set; }
+        public bool IsEatingOut { get; set; }
+    }
+}

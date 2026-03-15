@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeTag> RecipeTags => Set<RecipeTag>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
+    public DbSet<MenuEntry> MenuEntries => Set<MenuEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         ConfigureBaseEntity<StorageLocation>(modelBuilder);
         ConfigureBaseEntity<Ingredient>(modelBuilder);
         ConfigureBaseEntity<Recipe>(modelBuilder);
+        ConfigureBaseEntity<MenuEntry>(modelBuilder);
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -119,6 +121,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .WithMany()
                 .HasForeignKey(ri => ri.IngredientId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MenuEntry>(entity =>
+        {
+            entity.HasIndex(e => e.Date).IsUnique();
+            entity.Property(e => e.DeliveryNote).HasMaxLength(500);
+
+            entity.HasOne(e => e.Recipe)
+                .WithMany()
+                .HasForeignKey(e => e.RecipeId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 

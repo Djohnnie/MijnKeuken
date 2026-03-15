@@ -39,6 +39,7 @@ public class NavigationTests : PlaywrightTestBase
         await page.WaitForTimeoutAsync(500);
 
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Dashboard" }).IsVisibleAsync(), Is.True);
+        Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Menu" }).IsVisibleAsync(), Is.True);
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Tags" }).IsVisibleAsync(), Is.True);
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Ingrediënten" }).IsVisibleAsync(), Is.True);
         Assert.That(await page.GetByRole(Microsoft.Playwright.AriaRole.Link, new() { Name = "Recepten" }).IsVisibleAsync(), Is.True);
