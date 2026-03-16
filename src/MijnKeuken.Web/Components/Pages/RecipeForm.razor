@@ -96,88 +96,111 @@
         </MudStack>
 
         <MudText Typo="Typo.body2" Class="mb-1">Ingrediënten</MudText>
-        <MudDataGrid T="RecipeIngredientModel" Items="_gridItems" Dense="true" Class="mb-3 ingredient-grid"
-                     Elevation="0" Bordered="true" ReadOnly="false">
-            <Columns>
-                <TemplateColumn T="RecipeIngredientModel" Title="" Sortable="false" Filterable="false" CellStyle="width:36px;padding:4px;">
-                    <CellTemplate>
-                        @if (!context.Item.IsNewRow)
-                        {
+        <MudSimpleTable Dense="true" Class="mb-3 ingredient-grid" Elevation="0" Style="border:1px solid var(--mud-palette-table-lines);">
+            <thead>
+                <tr>
+                    <th style="width:36px;padding:4px;"></th>
+                    <th style="width:36px;padding:4px;"></th>
+                    <th style="min-width:220px;">Ingrediënt</th>
+                    <th style="width:110px;">Hoeveelheid</th>
+                    <th style="width:130px;">Eenheid</th>
+                    <th style="width:48px;padding:4px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _selectedIngredients)
+                {
+                    <tr draggable="true" class="@(_dragOverItem == item ? "drag-over-row" : "")"
+                        @ondragstart="() => OnDragStart(item)"
+                        @ondragover:preventDefault="true"
+                        @ondragover="() => OnDragOver(item)"
+                        @ondrop="() => OnDrop(item)"
+                        @ondragend="OnDragEnd"
+                        style="cursor:grab;">
+                        <td style="width:36px;padding:4px;">
                             <div style="display:flex;align-items:center;justify-content:center;height:100%;">
-                                <MudIcon Icon="@(context.Item.IsManaged ? Icons.Material.Rounded.Inventory2 : Icons.Material.Rounded.TextFields)"
-                                         Size="Size.Small" Color="@(context.Item.IsManaged ? Color.Primary : Color.Default)"
-                                         Title="@(context.Item.IsManaged ? "Beheerd ingrediënt" : "Vrije tekst")" />
+                                <MudIcon Icon="@Icons.Material.Rounded.DragIndicator" Size="Size.Small" Color="Color.Default" />
                             </div>
-                        }
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn T="RecipeIngredientModel" Title="Ingrediënt" Sortable="false" Filterable="false" CellStyle="min-width:220px;">
-                    <CellTemplate>
-                        @if (context.Item.IsNewRow)
-                        {
-                            <div style="position:relative;">
-                                <MudTextField T="string" Value="context.Item.DisplayName" Immediate="true"
-                                              ValueChanged="v => OnIngredientTextChanged(context.Item, v)"
-                                              Variant="Variant.Text" Margin="Margin.Dense" DisableUnderLine="true"
-                                              Placeholder="Nieuw ingrediënt..."
-                                              OnKeyDown="e => OnRowKeyDown(context.Item, e)" />
-                                @{ var suggestions = GetSuggestionsFor(context.Item); }
-                                @if (suggestions.Any())
-                                {
-                                    <MudPaper Elevation="4" Style="position:absolute;z-index:10;width:100%;max-height:200px;overflow-y:auto;">
-                                        <MudList T="string" Dense="true">
-                                            @foreach (var s in suggestions)
-                                            {
-                                                <MudListItem T="string" OnClick="() => SelectSuggestionFor(context.Item, s)">
-                                                    @s
-                                                </MudListItem>
-                                            }
-                                        </MudList>
-                                    </MudPaper>
-                                }
+                        </td>
+                        <td style="width:36px;padding:4px;">
+                            <div style="display:flex;align-items:center;justify-content:center;height:100%;">
+                                <MudIcon Icon="@(item.IsManaged ? Icons.Material.Rounded.Inventory2 : Icons.Material.Rounded.TextFields)"
+                                         Size="Size.Small" Color="@(item.IsManaged ? Color.Primary : Color.Default)"
+                                         Title="@(item.IsManaged ? "Beheerd ingrediënt" : "Vrije tekst")" />
                             </div>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2">@context.Item.DisplayName</MudText>
-                        }
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn T="RecipeIngredientModel" Title="Hoeveelheid" Sortable="false" Filterable="false" CellStyle="width:110px;">
-                    <CellTemplate>
-                        <MudNumericField T="decimal" @bind-Value="context.Item.Amount"
+                        </td>
+                        <td style="min-width:220px;">
+                            <MudText Typo="Typo.body2">@item.DisplayName</MudText>
+                        </td>
+                        <td style="width:110px;">
+                            <MudNumericField T="decimal" @bind-Value="item.Amount"
+                                             Variant="Variant.Text" Margin="Margin.Dense" Min="0.01m" DisableUnderLine="true"
+                                             Format="G29" />
+                        </td>
+                        <td style="width:130px;">
+                            <MudSelect T="UnitType" @bind-Value="item.Unit"
+                                       Variant="Variant.Text" Margin="Margin.Dense" Dense="true" DisableUnderLine="true">
+                                <MudSelectItem T="UnitType" Value="UnitType.Grams">Gram</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Units">Stuks</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Percentage">Percentage</MudSelectItem>
+                            </MudSelect>
+                        </td>
+                        <td style="width:48px;padding:4px;">
+                            <div style="display:flex;align-items:center;justify-content:center;height:100%;">
+                                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="() => RemoveIngredient(item)" />
+                            </div>
+                        </td>
+                    </tr>
+                }
+                <tr>
+                    <td style="width:36px;padding:4px;"></td>
+                    <td style="width:36px;padding:4px;"></td>
+                    <td style="min-width:220px;">
+                        <div style="position:relative;">
+                            <MudTextField T="string" Value="_newRow.DisplayName" Immediate="true"
+                                          ValueChanged="v => OnIngredientTextChanged(_newRow, v)"
+                                          Variant="Variant.Text" Margin="Margin.Dense" DisableUnderLine="true"
+                                          Placeholder="Nieuw ingrediënt..."
+                                          OnKeyDown="e => OnRowKeyDown(_newRow, e)" />
+                            @{ var suggestions = GetSuggestionsFor(_newRow); }
+                            @if (suggestions.Any())
+                            {
+                                <MudPaper Elevation="4" Style="position:absolute;z-index:10;width:100%;max-height:200px;overflow-y:auto;">
+                                    <MudList T="string" Dense="true">
+                                        @foreach (var s in suggestions)
+                                        {
+                                            <MudListItem T="string" OnClick="() => SelectSuggestionFor(_newRow, s)">
+                                                @s
+                                            </MudListItem>
+                                        }
+                                    </MudList>
+                                </MudPaper>
+                            }
+                        </div>
+                    </td>
+                    <td style="width:110px;">
+                        <MudNumericField T="decimal" @bind-Value="_newRow.Amount"
                                          Variant="Variant.Text" Margin="Margin.Dense" Min="0.01m" DisableUnderLine="true"
                                          Format="G29" />
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn T="RecipeIngredientModel" Title="Eenheid" Sortable="false" Filterable="false" CellStyle="width:130px;">
-                    <CellTemplate>
-                        <MudSelect T="UnitType" @bind-Value="context.Item.Unit"
+                    </td>
+                    <td style="width:130px;">
+                        <MudSelect T="UnitType" @bind-Value="_newRow.Unit"
                                    Variant="Variant.Text" Margin="Margin.Dense" Dense="true" DisableUnderLine="true">
                             <MudSelectItem T="UnitType" Value="UnitType.Grams">Gram</MudSelectItem>
                             <MudSelectItem T="UnitType" Value="UnitType.Units">Stuks</MudSelectItem>
                             <MudSelectItem T="UnitType" Value="UnitType.Percentage">Percentage</MudSelectItem>
                         </MudSelect>
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn T="RecipeIngredientModel" Title="" Sortable="false" Filterable="false" CellStyle="width:48px;padding:4px;">
-                    <CellTemplate>
+                    </td>
+                    <td style="width:48px;padding:4px;">
                         <div style="display:flex;align-items:center;justify-content:center;height:100%;">
-                            @if (context.Item.IsNewRow)
-                            {
-                                <MudIconButton Icon="@Icons.Material.Rounded.Add" Size="Size.Small" Color="Color.Primary"
-                                               OnClick="CommitNewRow" Disabled="@(string.IsNullOrWhiteSpace(context.Item.DisplayName))" />
-                            }
-                            else
-                            {
-                                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
-                                               OnClick="() => RemoveIngredient(context.Item)" />
-                            }
+                            <MudIconButton Icon="@Icons.Material.Rounded.Add" Size="Size.Small" Color="Color.Primary"
+                                           OnClick="CommitNewRow" Disabled="@(string.IsNullOrWhiteSpace(_newRow.DisplayName))" />
                         </div>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-        </MudDataGrid>
+                    </td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
 
         @if (_errorMessage is not null)
         {
@@ -219,10 +242,9 @@
     private List<TagDto> _availableTags = [];
     private List<IngredientDto> _allIngredients = [];
     private RecipeIngredientModel _newRow = CreateNewRow();
+    private RecipeIngredientModel? _draggedItem;
+    private RecipeIngredientModel? _dragOverItem;
     private string? _errorMessage;
-
-    private IEnumerable<RecipeIngredientModel> _gridItems
-        => _selectedIngredients.Append(_newRow);
 
     protected override async Task OnInitializedAsync()
     {
@@ -258,8 +280,9 @@
                 IsManaged = i.IsManaged,
                 Amount = i.Amount,
                 Unit = i.Unit,
-                CustomUnitDescription = i.CustomUnitDescription
-            }).ToList();
+                CustomUnitDescription = i.CustomUnitDescription,
+                SortOrder = i.SortOrder
+            }).OrderBy(i => i.SortOrder).ToList();
         }
         else
         {
@@ -273,7 +296,7 @@
                 _plan = scraped.Plan;
                 _servings = scraped.Servings ?? 2;
                 _sourceUrl = sourceUrl;
-                _selectedIngredients = scraped.Ingredients.Select(i =>
+                _selectedIngredients = scraped.Ingredients.Select((i, index) =>
                 {
                     var unitType = i.Unit.Contains("gram", StringComparison.OrdinalIgnoreCase)
                         || i.Unit.Contains("kg", StringComparison.OrdinalIgnoreCase)
@@ -288,7 +311,8 @@
                         FreeText = i.Name,
                         IsManaged = false,
                         Amount = i.Amount,
-                        Unit = unitType
+                        Unit = unitType,
+                        SortOrder = index
                     };
                 }).ToList();
             }
@@ -378,12 +402,48 @@
         _newRow.IsNewRow = false;
         _newRow.DisplayName = text;
         _newRow.FreeText = text;
+        _newRow.SortOrder = _selectedIngredients.Count > 0
+            ? _selectedIngredients.Max(i => i.SortOrder) + 1
+            : 0;
         _selectedIngredients.Add(_newRow);
         _newRow = CreateNewRow();
     }
 
     private void RemoveIngredient(RecipeIngredientModel item)
         => _selectedIngredients.Remove(item);
+
+    private void OnDragStart(RecipeIngredientModel item)
+    {
+        _draggedItem = item;
+    }
+
+    private void OnDragOver(RecipeIngredientModel item)
+    {
+        if (_draggedItem is not null && _draggedItem != item)
+            _dragOverItem = item;
+    }
+
+    private void OnDrop(RecipeIngredientModel targetItem)
+    {
+        if (_draggedItem is null || _draggedItem == targetItem) return;
+
+        var oldIndex = _selectedIngredients.IndexOf(_draggedItem);
+        var newIndex = _selectedIngredients.IndexOf(targetItem);
+
+        if (oldIndex < 0 || newIndex < 0) return;
+
+        _selectedIngredients.RemoveAt(oldIndex);
+        _selectedIngredients.Insert(newIndex, _draggedItem);
+
+        _draggedItem = null;
+        _dragOverItem = null;
+    }
+
+    private void OnDragEnd()
+    {
+        _draggedItem = null;
+        _dragOverItem = null;
+    }
 
     private async Task OpenRecalculateDialog()
     {
@@ -423,8 +483,8 @@
             _servings,
             _sourceUrl?.Trim() ?? string.Empty,
             _selectedTagIds.ToList(),
-            _selectedIngredients.Select(i =>
-                new RecipeIngredientRequest(i.IngredientId, i.FreeText, i.Amount, i.Unit, i.CustomUnitDescription ?? string.Empty)).ToList());
+            _selectedIngredients.Select((i, index) =>
+                new RecipeIngredientRequest(i.IngredientId, i.FreeText, i.Amount, i.Unit, i.CustomUnitDescription ?? string.Empty, index)).ToList());
 
         if (_isEdit)
         {
@@ -468,6 +528,7 @@
         public decimal Amount { get; set; } = 1;
         public UnitType Unit { get; set; } = UnitType.Units;
         public string CustomUnitDescription { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
     }
 
     private static RecipeIngredientModel CreateNewRow() => new() { IsNewRow = true };
@@ -477,5 +538,13 @@
     .ingredient-grid .mud-input-underline::before,
     .ingredient-grid .mud-input-underline::after {
         border-bottom: none !important;
+    }
+
+    .drag-over-row {
+        border-top: 2px solid var(--mud-palette-primary) !important;
+    }
+
+    .ingredient-grid tr[draggable="true"]:hover {
+        background-color: var(--mud-palette-table-hover);
     }
 </style>

@@ -21,4 +21,5 @@ public record RecipeIngredientDto(
     bool IsManaged,
     decimal Amount,
     UnitType Unit,
-    string CustomUnitDescription);
+    string CustomUnitDescription,
+    int SortOrder);

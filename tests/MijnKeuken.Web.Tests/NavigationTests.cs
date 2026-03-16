@@ -1,4 +1,6 @@
-namespace MijnKeuken.Web.Tests.Tests;
+using MijnKeuken.Web.Tests.Helpers;
+
+namespace MijnKeuken.Web.Tests;
 
 /// <summary>
 /// Tests for navigation: sidebar links, top bar buttons, and page accessibility when authenticated.

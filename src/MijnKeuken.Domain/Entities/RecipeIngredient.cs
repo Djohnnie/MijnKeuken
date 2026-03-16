@@ -13,6 +13,7 @@ public class RecipeIngredient
     public decimal Amount { get; set; }
     public UnitType Unit { get; set; }
     public string CustomUnitDescription { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
 
     public bool IsManaged => IngredientId.HasValue;
 }

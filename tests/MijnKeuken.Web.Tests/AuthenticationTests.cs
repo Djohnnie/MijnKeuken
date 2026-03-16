@@ -1,4 +1,6 @@
-namespace MijnKeuken.Web.Tests.Tests;
+using MijnKeuken.Web.Tests.Helpers;
+
+namespace MijnKeuken.Web.Tests;
 
 /// <summary>
 /// Tests for authentication flows: login page redirect, login, registration, and logout.

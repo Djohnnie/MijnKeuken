@@ -115,6 +115,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(ri => ri.Amount).HasPrecision(18, 4);
             entity.Property(ri => ri.Unit).HasConversion<string>().HasMaxLength(20);
             entity.Property(ri => ri.CustomUnitDescription).HasMaxLength(50);
+            entity.Property(ri => ri.SortOrder).HasDefaultValue(0);
 
             entity.HasOne(ri => ri.Recipe)
                 .WithMany(r => r.RecipeIngredients)

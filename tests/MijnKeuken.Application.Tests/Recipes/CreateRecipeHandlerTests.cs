@@ -88,7 +88,7 @@ public class CreateRecipeHandlerTests
             new CreateRecipeCommand("Salade", "", "",
                 2, "",
                 [tagId],
-                [new RecipeIngredientInput(ingredientId, "Sla", 200, UnitType.Grams, "")]),
+                [new RecipeIngredientInput(ingredientId, "Sla", 200, UnitType.Grams, "", 0)]),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -136,10 +136,35 @@ public class CreateRecipeHandlerTests
 
         var result = await _handler.Handle(
             new CreateRecipeCommand("Test", "", "", 2, "", [],
-                [new RecipeIngredientInput(null, "Bloem", amount, UnitType.Grams, "")]),
+                [new RecipeIngredientInput(null, "Bloem", amount, UnitType.Grams, "", 0)]),
             CancellationToken.None);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("Hoeveelheid", result.Error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateRecipe_ShouldPersistIngredientSortOrder()
+    {
+        _repo.Setup(r => r.ExistsByTitleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _handler.Handle(
+            new CreateRecipeCommand("Pasta", "", "", 2, "", [],
+            [
+                new RecipeIngredientInput(null, "Pasta", 500, UnitType.Grams, "", 0),
+                new RecipeIngredientInput(null, "Saus", 200, UnitType.Grams, "", 1),
+                new RecipeIngredientInput(null, "Kaas", 100, UnitType.Grams, "", 2)
+            ]),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        _repo.Verify(r => r.AddAsync(
+            It.Is<Recipe>(rec =>
+                rec.RecipeIngredients.Count == 3 &&
+                rec.RecipeIngredients[0].SortOrder == 0 &&
+                rec.RecipeIngredients[1].SortOrder == 1 &&
+                rec.RecipeIngredients[2].SortOrder == 2),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

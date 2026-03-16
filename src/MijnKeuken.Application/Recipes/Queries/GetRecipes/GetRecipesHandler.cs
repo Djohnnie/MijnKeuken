@@ -18,14 +18,15 @@ public class GetRecipesHandler(IRecipeRepository repository)
             r.Servings,
             r.SourceUrl,
             r.RecipeTags.Select(rt => new RecipeTagDto(rt.TagId, rt.Tag.Name, rt.Tag.Color)).ToList(),
-            r.RecipeIngredients.Select(ri => new RecipeIngredientDto(
+            r.RecipeIngredients.OrderBy(ri => ri.SortOrder).Select(ri => new RecipeIngredientDto(
                 ri.IngredientId,
                 ri.Ingredient?.Title ?? ri.FreeText,
                 ri.FreeText,
                 ri.IsManaged,
                 ri.Amount,
                 ri.Unit,
-                ri.CustomUnitDescription)).ToList()
+                ri.CustomUnitDescription,
+                ri.SortOrder)).ToList()
         )).ToList();
     }
 }

@@ -41,7 +41,8 @@ public class CreateRecipeHandler(IRecipeRepository repository)
                 FreeText = i.FreeText?.Trim() ?? string.Empty,
                 Amount = i.Amount,
                 Unit = i.Unit,
-                CustomUnitDescription = i.CustomUnitDescription?.Trim() ?? string.Empty
+                CustomUnitDescription = i.CustomUnitDescription?.Trim() ?? string.Empty,
+                SortOrder = i.SortOrder
             }).ToList()
         };
 

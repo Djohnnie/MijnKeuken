@@ -30,7 +30,7 @@ public class RecipesController(IMediator mediator) : ControllerBase
         return recipe is not null ? Ok(recipe) : NotFound();
     }
 
-    public record RecipeIngredientRequest(Guid? IngredientId, string FreeText, decimal Amount, UnitType Unit, string CustomUnitDescription);
+    public record RecipeIngredientRequest(Guid? IngredientId, string FreeText, decimal Amount, UnitType Unit, string CustomUnitDescription, int SortOrder);
 
     public record CreateRecipeRequest(
         string Title, string Description, string Plan, int Servings, string SourceUrl,
@@ -43,7 +43,7 @@ public class RecipesController(IMediator mediator) : ControllerBase
             request.Title, request.Description, request.Plan, request.Servings, request.SourceUrl,
             request.TagIds,
             request.Ingredients.Select(i =>
-                new RecipeIngredientInput(i.IngredientId, i.FreeText, i.Amount, i.Unit, i.CustomUnitDescription)).ToList()));
+                new RecipeIngredientInput(i.IngredientId, i.FreeText, i.Amount, i.Unit, i.CustomUnitDescription, i.SortOrder)).ToList()));
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
@@ -54,7 +54,7 @@ public class RecipesController(IMediator mediator) : ControllerBase
             id, request.Title, request.Description, request.Plan, request.Servings, request.SourceUrl,
             request.TagIds,
             request.Ingredients.Select(i =>
-                new RecipeIngredientInput(i.IngredientId, i.FreeText, i.Amount, i.Unit, i.CustomUnitDescription)).ToList()));
+                new RecipeIngredientInput(i.IngredientId, i.FreeText, i.Amount, i.Unit, i.CustomUnitDescription, i.SortOrder)).ToList()));
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
     }
 

@@ -14,7 +14,7 @@ public interface IRecipeService
     Task<Result<ScrapedRecipeDto>> ScrapeFromUrlAsync(string url);
 }
 
-public record RecipeIngredientRequest(Guid? IngredientId, string FreeText, decimal Amount, UnitType Unit, string CustomUnitDescription);
+public record RecipeIngredientRequest(Guid? IngredientId, string FreeText, decimal Amount, UnitType Unit, string CustomUnitDescription, int SortOrder);
 
 public record CreateRecipeRequest(
     string Title, string Description, string Plan, int Servings, string SourceUrl,

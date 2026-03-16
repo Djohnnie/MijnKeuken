@@ -82,7 +82,7 @@ public class UpdateRecipeHandlerTests
             new UpdateRecipeCommand(id, "Pasta", "", "",
                 2, "",
                 [newTagId],
-                [new RecipeIngredientInput(newIngredientId, "Tomaat", 100, UnitType.Grams, "")]),
+                [new RecipeIngredientInput(newIngredientId, "Tomaat", 100, UnitType.Grams, "", 0)]),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -132,7 +132,7 @@ public class UpdateRecipeHandlerTests
     {
         var result = await _handler.Handle(
             new UpdateRecipeCommand(Guid.NewGuid(), "Test", "", "", 2, "", [],
-                [new RecipeIngredientInput(null, "Bloem", amount, UnitType.Grams, "")]),
+                [new RecipeIngredientInput(null, "Bloem", amount, UnitType.Grams, "", 0)]),
             CancellationToken.None);
 
         Assert.False(result.IsSuccess);
