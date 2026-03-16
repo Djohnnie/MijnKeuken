@@ -13,8 +13,10 @@ public record RecipeDto(
 public record RecipeTagDto(Guid TagId, string Name, string Color);
 
 public record RecipeIngredientDto(
-    Guid IngredientId,
+    Guid? IngredientId,
     string IngredientTitle,
+    string FreeText,
+    bool IsManaged,
     decimal Amount,
     UnitType Unit,
     string CustomUnitDescription);

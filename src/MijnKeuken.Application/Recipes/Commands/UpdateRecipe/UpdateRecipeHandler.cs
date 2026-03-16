@@ -29,15 +29,21 @@ public class UpdateRecipeHandler(IRecipeRepository repository)
             TagId = tagId
         }));
 
-        recipe.RecipeIngredients.Clear();
-        recipe.RecipeIngredients.AddRange(request.Ingredients.Select(i => new RecipeIngredient
+        // Replace ingredients via direct DB operations to avoid EF orphan-detection issues
+        var newIngredients = request.Ingredients.Select(i => new RecipeIngredient
         {
+            Id = Guid.NewGuid(),
             RecipeId = recipe.Id,
             IngredientId = i.IngredientId,
+            FreeText = i.FreeText?.Trim() ?? string.Empty,
             Amount = i.Amount,
             Unit = i.Unit,
             CustomUnitDescription = i.CustomUnitDescription?.Trim() ?? string.Empty
-        }));
+        }).ToList();
+
+        await repository.ReplaceIngredientsAsync(recipe.Id, newIngredients, cancellationToken);
+        recipe.RecipeIngredients.Clear();
+        recipe.RecipeIngredients.AddRange(newIngredients);
 
         await repository.UpdateAsync(recipe, cancellationToken);
         return Result.Success();

@@ -60,7 +60,8 @@ public class MenuEntryRepository(AppDbContext db) : IMenuEntryRepository
         var results = await db.MenuEntries
             .Where(e => e.RecipeId != null)
             .Join(db.Set<RecipeIngredient>(), e => e.RecipeId, ri => ri.RecipeId, (e, ri) => ri)
-            .Join(db.Set<Ingredient>(), ri => ri.IngredientId, i => i.Id, (ri, i) => new { ri.IngredientId, i.Title })
+            .Where(ri => ri.IngredientId != null)
+            .Join(db.Set<Ingredient>(), ri => ri.IngredientId!.Value, i => i.Id, (ri, i) => new { IngredientId = ri.IngredientId!.Value, i.Title })
             .GroupBy(x => new { x.IngredientId, x.Title })
             .Select(g => new { g.Key.IngredientId, g.Key.Title, Count = g.Count() })
             .OrderByDescending(x => x.Count)

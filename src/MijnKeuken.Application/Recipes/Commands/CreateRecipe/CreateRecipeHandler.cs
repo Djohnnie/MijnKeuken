@@ -28,7 +28,9 @@ public class CreateRecipeHandler(IRecipeRepository repository)
             }).ToList(),
             RecipeIngredients = request.Ingredients.Select(i => new RecipeIngredient
             {
+                Id = Guid.NewGuid(),
                 IngredientId = i.IngredientId,
+                FreeText = i.FreeText?.Trim() ?? string.Empty,
                 Amount = i.Amount,
                 Unit = i.Unit,
                 CustomUnitDescription = i.CustomUnitDescription?.Trim() ?? string.Empty

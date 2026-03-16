@@ -31,6 +31,10 @@ public class UpdateRecipeHandlerTests
         Assert.True(result.IsSuccess);
         Assert.Equal("Pasta Bolognese", existing.Title);
         Assert.Equal("## Plan", existing.Plan);
+        _repo.Verify(r => r.ReplaceIngredientsAsync(
+            id,
+            It.Is<List<RecipeIngredient>>(list => list.Count == 0),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -77,7 +81,7 @@ public class UpdateRecipeHandlerTests
         var result = await _handler.Handle(
             new UpdateRecipeCommand(id, "Pasta", "", "",
                 [newTagId],
-                [new RecipeIngredientInput(newIngredientId, 100, UnitType.Grams, "")]),
+                [new RecipeIngredientInput(newIngredientId, "Tomaat", 100, UnitType.Grams, "")]),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -85,5 +89,9 @@ public class UpdateRecipeHandlerTests
         Assert.Equal(newTagId, existing.RecipeTags[0].TagId);
         Assert.Single(existing.RecipeIngredients);
         Assert.Equal(newIngredientId, existing.RecipeIngredients[0].IngredientId);
+        _repo.Verify(r => r.ReplaceIngredientsAsync(
+            id,
+            It.Is<List<RecipeIngredient>>(list => list.Count == 1 && list[0].IngredientId == newIngredientId),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

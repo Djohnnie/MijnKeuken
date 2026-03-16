@@ -13,7 +13,7 @@ public interface IRecipeService
     Task<Result> DeleteAsync(Guid id);
 }
 
-public record RecipeIngredientRequest(Guid IngredientId, decimal Amount, UnitType Unit, string CustomUnitDescription);
+public record RecipeIngredientRequest(Guid? IngredientId, string FreeText, decimal Amount, UnitType Unit, string CustomUnitDescription);
 
 public record CreateRecipeRequest(
     string Title, string Description, string Plan,

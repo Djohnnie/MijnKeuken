@@ -39,7 +39,21 @@ public class RecipeTests : PlaywrightTestBase
 
         await page.Locator("button:has-text('Aanmaken')").ClickAsync();
 
-        await page.Locator(".mud-table").WaitForAsync(new() { Timeout = 10000 });
+        // Wait for navigation back to the recipes list — use a list-page-specific locator
+        // because .mud-table now also matches the DataGrid on the recipe form
+        await page.Locator("button:has-text('Nieuw recept')").WaitForAsync(new() { Timeout = 10000 });
+    }
+
+    private static async Task AddFreeTextIngredientInGridAsync(Microsoft.Playwright.IPage page, string name)
+    {
+        var ingredientInput = page.GetByPlaceholder("Nieuw ingrediënt...");
+        await ingredientInput.FillAsync(name);
+        await page.WaitForTimeoutAsync(300);
+
+        var newRow = page.Locator(".ingredient-grid tr",
+            new() { Has = page.GetByPlaceholder("Nieuw ingrediënt...") });
+        await newRow.Locator("td").Last.Locator("button").ClickAsync();
+        await page.WaitForTimeoutAsync(500);
     }
 
     [Test]
@@ -92,7 +106,7 @@ public class RecipeTests : PlaywrightTestBase
         await page.Locator("button:has-text('Opslaan')").ClickAsync();
 
         // Should navigate back to recipes list
-        await page.Locator(".mud-table").WaitForAsync(new() { Timeout = 10000 });
+        await page.Locator("button:has-text('Nieuw recept')").WaitForAsync(new() { Timeout = 10000 });
 
         var updatedCell = page.Locator("td[data-label='Titel']", new() { HasTextString = updatedTitle });
         await updatedCell.WaitForAsync(new() { Timeout = 5000 });
@@ -144,6 +158,172 @@ public class RecipeTests : PlaywrightTestBase
 
         Assert.That(await matchCell.IsVisibleAsync(), Is.True);
         Assert.That(await page.Locator("tr", new() { HasText = otherTitle }).IsVisibleAsync(), Is.False);
+    }
+
+    [Test]
+    public async Task RecipeForm_IngredientGrid_DisplaysColumnsAndNewRow()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var grid = page.Locator(".ingredient-grid");
+        await grid.WaitForAsync(new() { Timeout = 5000 });
+        Assert.That(await grid.IsVisibleAsync(), Is.True);
+
+        Assert.That(await grid.GetByText("Ingrediënt").IsVisibleAsync(), Is.True);
+        Assert.That(await grid.GetByText("Hoeveelheid").IsVisibleAsync(), Is.True);
+        Assert.That(await grid.GetByText("Eenheid").IsVisibleAsync(), Is.True);
+        Assert.That(await page.GetByPlaceholder("Nieuw ingrediënt...").IsVisibleAsync(), Is.True);
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_AddFreeTextIngredient_ShowsAsReadOnly()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var name = $"Ing_{Guid.NewGuid():N}"[..10];
+        await AddFreeTextIngredientInGridAsync(page, name);
+
+        var grid = page.Locator(".ingredient-grid");
+        var ingredientRow = grid.Locator("tr", new() { HasTextString = name });
+        await ingredientRow.WaitForAsync(new() { Timeout = 3000 });
+
+        // Name should be in a <p> element (MudText), not an editable input
+        Assert.That(await ingredientRow.Locator("p", new() { HasTextString = name }).IsVisibleAsync(), Is.True);
+
+        // The new row's input should be cleared
+        Assert.That(await page.GetByPlaceholder("Nieuw ingrediënt...").InputValueAsync(), Is.EqualTo(""));
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_AddIngredient_ViaEnterKey()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var name = $"Enter_{Guid.NewGuid():N}"[..12];
+        var ingredientInput = page.GetByPlaceholder("Nieuw ingrediënt...");
+        await ingredientInput.FillAsync(name);
+        await page.WaitForTimeoutAsync(300);
+        await ingredientInput.PressAsync("Enter");
+        await page.WaitForTimeoutAsync(500);
+
+        var grid = page.Locator(".ingredient-grid");
+        Assert.That(await grid.Locator("p", new() { HasTextString = name }).IsVisibleAsync(), Is.True);
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_FreeTextIngredient_ShowsFreeTextIcon()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var name = $"Icon_{Guid.NewGuid():N}"[..10];
+        await AddFreeTextIngredientInGridAsync(page, name);
+
+        var grid = page.Locator(".ingredient-grid");
+        var ingredientRow = grid.Locator("tr", new() { HasTextString = name });
+        await ingredientRow.WaitForAsync(new() { Timeout = 3000 });
+
+        // Free-text ingredients should show the "Vrije tekst" SVG title
+        Assert.That(await ingredientRow.Locator("svg title").TextContentAsync(), Is.EqualTo("Vrije tekst"));
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_DeleteIngredient_RemovesFromGrid()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var name = $"Del_{Guid.NewGuid():N}"[..10];
+        await AddFreeTextIngredientInGridAsync(page, name);
+
+        var grid = page.Locator(".ingredient-grid");
+        var ingredientRow = grid.Locator("tr", new() { HasTextString = name });
+        await ingredientRow.WaitForAsync(new() { Timeout = 3000 });
+
+        // Click the delete button on the ingredient row
+        await ingredientRow.Locator("td").Last.Locator("button").ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+
+        Assert.That(await grid.Locator("p", new() { HasTextString = name }).IsVisibleAsync(), Is.False);
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_DuplicateIngredient_NotAdded()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var name = $"Dup_{Guid.NewGuid():N}"[..10];
+        await AddFreeTextIngredientInGridAsync(page, name);
+        await AddFreeTextIngredientInGridAsync(page, name);
+
+        var grid = page.Locator(".ingredient-grid");
+        Assert.That(await grid.Locator("p", new() { HasTextString = name }).CountAsync(), Is.EqualTo(1));
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task CreateRecipeWithIngredient_PersistsOnEdit()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        var title = $"IngRec_{Guid.NewGuid():N}"[..14];
+        var ingredientName = $"Ing_{Guid.NewGuid():N}"[..10];
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        await page.GetByLabel("Titel").FillAsync(title);
+        await AddFreeTextIngredientInGridAsync(page, ingredientName);
+
+        await page.Locator("button:has-text('Aanmaken')").ClickAsync();
+        await page.Locator("button:has-text('Nieuw recept')").WaitForAsync(new() { Timeout = 10000 });
+
+        // Click edit on the created recipe
+        var row = page.Locator("tr", new() { HasText = title });
+        await row.Locator("button").Nth(0).ClickAsync();
+
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+        await page.Locator(".ingredient-grid").WaitForAsync(new() { Timeout = 5000 });
+
+        // The ingredient should be persisted and shown as read-only text
+        var grid = page.Locator(".ingredient-grid");
+        Assert.That(await grid.Locator("p", new() { HasTextString = ingredientName }).IsVisibleAsync(), Is.True);
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
     }
 
     [Test]

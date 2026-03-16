@@ -106,8 +106,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.Entity<RecipeIngredient>(entity =>
         {
-            entity.HasKey(ri => new { ri.RecipeId, ri.IngredientId });
+            entity.HasKey(ri => ri.Id);
+            entity.Property(ri => ri.Id).ValueGeneratedNever();
 
+            entity.Property(ri => ri.FreeText).HasMaxLength(200);
             entity.Property(ri => ri.Amount).HasPrecision(18, 4);
             entity.Property(ri => ri.Unit).HasConversion<string>().HasMaxLength(20);
             entity.Property(ri => ri.CustomUnitDescription).HasMaxLength(50);
@@ -120,7 +122,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(ri => ri.Ingredient)
                 .WithMany()
                 .HasForeignKey(ri => ri.IngredientId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
         });
 
         modelBuilder.Entity<MenuEntry>(entity =>

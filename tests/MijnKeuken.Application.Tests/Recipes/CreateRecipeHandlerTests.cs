@@ -87,7 +87,7 @@ public class CreateRecipeHandlerTests
         var result = await _handler.Handle(
             new CreateRecipeCommand("Salade", "", "",
                 [tagId],
-                [new RecipeIngredientInput(ingredientId, 200, UnitType.Grams, "")]),
+                [new RecipeIngredientInput(ingredientId, "Sla", 200, UnitType.Grams, "")]),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);

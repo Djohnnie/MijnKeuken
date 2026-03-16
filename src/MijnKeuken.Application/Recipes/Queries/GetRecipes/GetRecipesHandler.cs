@@ -18,7 +18,9 @@ public class GetRecipesHandler(IRecipeRepository repository)
             r.RecipeTags.Select(rt => new RecipeTagDto(rt.TagId, rt.Tag.Name, rt.Tag.Color)).ToList(),
             r.RecipeIngredients.Select(ri => new RecipeIngredientDto(
                 ri.IngredientId,
-                ri.Ingredient.Title,
+                ri.Ingredient?.Title ?? ri.FreeText,
+                ri.FreeText,
+                ri.IsManaged,
                 ri.Amount,
                 ri.Unit,
                 ri.CustomUnitDescription)).ToList()
