@@ -1,0 +1,67 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Upload een foto van een recept (kookboek, screenshot, handgeschreven) om het automatisch te analyseren.
+        </MudText>
+        <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.gif,.webp"
+                       FilesChanged="OnFileSelected" MaximumFileCount="1">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Rounded.CloudUpload" FullWidth="true">
+                    @(_selectedFile is null ? "Afbeelding selecteren" : _selectedFile.Name)
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        @if (_selectedFile is not null)
+        {
+            <MudText Typo="Typo.caption" Class="mt-1" Color="Color.Tertiary">
+                @($"{_selectedFile.Name} ({FormatFileSize(_selectedFile.Size)})")
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Size="Size.Small">Annuleren</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                   OnClick="Submit" Disabled="@(_selectedFile is null)">
+            Analyseren
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private IBrowserFile? _selectedFile;
+
+    private void OnFileSelected(IBrowserFile file)
+    {
+        _selectedFile = file;
+    }
+
+    private async Task Submit()
+    {
+        if (_selectedFile is null) return;
+
+        const int maxSize = 10 * 1024 * 1024; // 10 MB
+        await using var stream = _selectedFile.OpenReadStream(maxSize);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        var result = new ScrapeImageResult(_selectedFile.ContentType, ms.ToArray());
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static string FormatFileSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+        _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
+    };
+
+    public record ScrapeImageResult(string ContentType, byte[] ImageData);
+}

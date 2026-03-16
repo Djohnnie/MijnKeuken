@@ -161,6 +161,12 @@
             UnitType.Grams => "g",
             UnitType.Units => "stuks",
             UnitType.Percentage => "%",
+            UnitType.Milliliters => "ml",
+            UnitType.Snuifje => "snuifje",
+            UnitType.Eetlepel => "el",
+            UnitType.Koffielepel => "kl",
+            UnitType.Teentje => "teentje",
+            UnitType.Bakje => "bakje",
             _ => i.CustomUnitDescription
         };
         return $"{(int)i.AmountAvailable}/{(int)i.AmountTotal} {unit}";

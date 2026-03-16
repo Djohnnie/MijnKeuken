@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IIngredientScraperService, IngredientScraperService>();
         services.AddScoped<IRecipeScraperService, RecipeScraperService>();
         services.AddScoped<IIngredientMatchingService, IngredientMatchingService>();
+        services.AddScoped<IRecipeImageScraperService, RecipeImageScraperService>();
 
         var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
             ?? "MijnKeuken-Dev-Secret-Key-Min-32-Characters!!";

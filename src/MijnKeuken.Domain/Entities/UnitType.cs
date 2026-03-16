@@ -4,5 +4,11 @@ public enum UnitType
 {
     Grams,
     Units,
-    Percentage
+    Percentage,
+    Milliliters,
+    Snuifje,
+    Eetlepel,
+    Koffielepel,
+    Teentje,
+    Bakje
 }

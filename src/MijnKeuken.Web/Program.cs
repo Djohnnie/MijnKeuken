@@ -1,3 +1,5 @@
+using Azure;
+using Azure.AI.ContentUnderstanding;
 using Azure.AI.OpenAI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -61,6 +63,14 @@ builder.Services.AddSingleton<IChatClient>(_ =>
     new AzureOpenAIClient(new Uri(openAiEndpoint), new ApiKeyCredential(openAiApiKey))
         .GetChatClient(openAiModel)
         .AsIChatClient());
+
+var contentUnderstandingEndpoint = builder.Configuration.GetValue<string>("CONTENT_UNDERSTANDING_ENDPOINT") ?? "";
+var contentUnderstandingKey = builder.Configuration.GetValue<string>("CONTENT_UNDERSTANDING_KEY") ?? "";
+
+builder.Services.AddSingleton(_ =>
+    new ContentUnderstandingClient(
+        new Uri(contentUnderstandingEndpoint),
+        new AzureKeyCredential(contentUnderstandingKey)));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();

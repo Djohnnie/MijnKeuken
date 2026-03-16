@@ -142,6 +142,12 @@
                                        Variant="Variant.Text" Margin="Margin.Dense" Dense="true" DisableUnderLine="true">
                                 <MudSelectItem T="UnitType" Value="UnitType.Grams">Gram</MudSelectItem>
                                 <MudSelectItem T="UnitType" Value="UnitType.Units">Stuks</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Milliliters">Milliliter</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Eetlepel">Eetlepel</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Koffielepel">Koffielepel</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Teentje">Teentje</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Snuifje">Snuifje</MudSelectItem>
+                                <MudSelectItem T="UnitType" Value="UnitType.Bakje">Bakje</MudSelectItem>
                                 <MudSelectItem T="UnitType" Value="UnitType.Percentage">Percentage</MudSelectItem>
                             </MudSelect>
                         </td>
@@ -189,6 +195,12 @@
                                    Variant="Variant.Text" Margin="Margin.Dense" Dense="true" DisableUnderLine="true">
                             <MudSelectItem T="UnitType" Value="UnitType.Grams">Gram</MudSelectItem>
                             <MudSelectItem T="UnitType" Value="UnitType.Units">Stuks</MudSelectItem>
+                            <MudSelectItem T="UnitType" Value="UnitType.Milliliters">Milliliter</MudSelectItem>
+                            <MudSelectItem T="UnitType" Value="UnitType.Eetlepel">Eetlepel</MudSelectItem>
+                            <MudSelectItem T="UnitType" Value="UnitType.Koffielepel">Koffielepel</MudSelectItem>
+                            <MudSelectItem T="UnitType" Value="UnitType.Teentje">Teentje</MudSelectItem>
+                            <MudSelectItem T="UnitType" Value="UnitType.Snuifje">Snuifje</MudSelectItem>
+                            <MudSelectItem T="UnitType" Value="UnitType.Bakje">Bakje</MudSelectItem>
                             <MudSelectItem T="UnitType" Value="UnitType.Percentage">Percentage</MudSelectItem>
                         </MudSelect>
                     </td>
@@ -298,12 +310,7 @@
                 _sourceUrl = sourceUrl;
                 _selectedIngredients = scraped.Ingredients.Select((i, index) =>
                 {
-                    var unitType = i.Unit.Contains("gram", StringComparison.OrdinalIgnoreCase)
-                        || i.Unit.Contains("kg", StringComparison.OrdinalIgnoreCase)
-                        || i.Unit.Contains("ml", StringComparison.OrdinalIgnoreCase)
-                        || i.Unit.Contains("liter", StringComparison.OrdinalIgnoreCase)
-                            ? UnitType.Grams
-                            : UnitType.Units;
+                    var unitType = ParseScrapedUnit(i.Unit);
 
                     return new RecipeIngredientModel
                     {
@@ -334,8 +341,31 @@
         UnitType.Grams => "Gram",
         UnitType.Units => "Stuks",
         UnitType.Percentage => "Percentage",
+        UnitType.Milliliters => "Milliliter",
+        UnitType.Snuifje => "Snuifje",
+        UnitType.Eetlepel => "Eetlepel",
+        UnitType.Koffielepel => "Koffielepel",
+        UnitType.Teentje => "Teentje",
+        UnitType.Bakje => "Bakje",
         _ => unit.ToString()
     };
+
+    private static UnitType ParseScrapedUnit(string unit)
+    {
+        var u = unit.Trim().ToLowerInvariant();
+        return u switch
+        {
+            _ when u.Contains("gram") || u.Contains("kg") => UnitType.Grams,
+            _ when u.Contains("ml") || u.Contains("milliliter") => UnitType.Milliliters,
+            _ when u.Contains("liter") || u.Contains("dl") => UnitType.Milliliters,
+            _ when u.Contains("el") || u.Contains("eetlepel") => UnitType.Eetlepel,
+            _ when u.Contains("tl") || u.Contains("koffielepel") || u.Contains("theelepel") => UnitType.Koffielepel,
+            _ when u.Contains("snuf") || u.Contains("snuifje") => UnitType.Snuifje,
+            _ when u.Contains("teen") || u.Contains("teentje") => UnitType.Teentje,
+            _ when u.Contains("bakje") => UnitType.Bakje,
+            _ => UnitType.Units
+        };
+    }
 
     private void ToggleTag(Guid tagId)
     {

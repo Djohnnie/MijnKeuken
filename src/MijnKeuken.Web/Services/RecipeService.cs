@@ -86,6 +86,28 @@ public class RecipeService(
         return Result<ScrapedRecipeDto>.Failure(error?.Error ?? "Scrapen mislukt.");
     }
 
+    public async Task<Result<ScrapedRecipeDto>> ScrapeFromImageAsync(byte[] imageData, string contentType)
+    {
+        using var client = CreateClient();
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(imageData);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        content.Add(fileContent, "image", "recipe-image");
+
+        var response = await client.PostAsync("api/recipes/scrape-image", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var scraped = await response.Content.ReadFromJsonAsync<ScrapedRecipeDto>();
+            return scraped is not null
+                ? Result<ScrapedRecipeDto>.Success(scraped)
+                : Result<ScrapedRecipeDto>.Failure("Geen gegevens ontvangen.");
+        }
+
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        return Result<ScrapedRecipeDto>.Failure(error?.Error ?? "Scrapen van afbeelding mislukt.");
+    }
+
     private HttpClient CreateClient()
     {
         var client = httpClientFactory.CreateClient();

@@ -7,6 +7,7 @@ using MijnKeuken.Application.Recipes.Commands.UpdateRecipe;
 using MijnKeuken.Application.Recipes.Queries.GetRecipeById;
 using MijnKeuken.Application.Recipes.Queries.GetRecipes;
 using MijnKeuken.Application.Recipes.Queries.ScrapeRecipe;
+using MijnKeuken.Application.Recipes.Queries.ScrapeRecipeFromImage;
 using MijnKeuken.Domain.Entities;
 
 namespace MijnKeuken.Web.Controllers;
@@ -64,6 +65,20 @@ public class RecipesController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Scrape([FromBody] ScrapeRecipeRequest request)
     {
         var result = await mediator.Send(new ScrapeRecipeFromUrlQuery(request.Url));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("scrape-image")]
+    public async Task<IActionResult> ScrapeImage(IFormFile image)
+    {
+        if (image is null || image.Length == 0)
+            return BadRequest(new { error = "Geen afbeelding ontvangen." });
+
+        using var ms = new MemoryStream();
+        await image.CopyToAsync(ms);
+
+        var result = await mediator.Send(
+            new ScrapeRecipeFromImageQuery(ms.ToArray(), image.ContentType));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 

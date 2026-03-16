@@ -19,6 +19,10 @@
                    StartIcon="@Icons.Material.Rounded.Language" OnClick="OpenScrapeDialog">
             Scrape van URL
         </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Rounded.PhotoCamera" OnClick="OpenScrapeImageDialog">
+            Scrape van afbeelding
+        </MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                    StartIcon="@Icons.Material.Rounded.Add" OnClick="NavigateToCreate">
             Nieuw recept
@@ -190,6 +194,42 @@
             catch (Exception)
             {
                 _errorMessage = "Er ging iets mis bij het scrapen.";
+            }
+            finally
+            {
+                _isScraping = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task OpenScrapeImageDialog()
+    {
+        var imageDialog = await DialogService.ShowAsync<ScrapeImageDialog>("Recept scrapen van afbeelding",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var imageResult = await imageDialog.Result;
+
+        if (imageResult is { Canceled: false, Data: ScrapeImageDialog.ScrapeImageResult data })
+        {
+            _errorMessage = null;
+            _isScraping = true;
+            StateHasChanged();
+
+            try
+            {
+                var scrapeResult = await RecipeService.ScrapeFromImageAsync(data.ImageData, data.ContentType);
+                if (scrapeResult.IsSuccess)
+                {
+                    ScrapedState.Data = scrapeResult.Value;
+                    Navigation.NavigateTo("/recipes/new");
+                    return;
+                }
+
+                _errorMessage = scrapeResult.Error;
+            }
+            catch (Exception)
+            {
+                _errorMessage = "Er ging iets mis bij het analyseren van de afbeelding.";
             }
             finally
             {
