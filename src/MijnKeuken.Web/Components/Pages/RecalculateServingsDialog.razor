@@ -1,0 +1,37 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Voer het gewenste aantal personen in. De hoeveelheden van alle ingrediënten worden herberekend.
+        </MudText>
+        <MudNumericField T="int" @bind-Value="_newServings" Label="Nieuw aantal personen"
+                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="99"
+                         Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Size="Size.Small">Annuleren</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                   OnClick="Submit" Disabled="@(_newServings < 1)">
+            Herberekenen
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public int CurrentServings { get; set; } = 4;
+
+    private int _newServings;
+
+    protected override void OnInitialized()
+    {
+        _newServings = CurrentServings;
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_newServings));
+    private void Cancel() => MudDialog.Cancel();
+}

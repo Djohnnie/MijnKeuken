@@ -11,10 +11,11 @@ public interface IRecipeService
     Task<Result<Guid>> CreateAsync(CreateRecipeRequest request);
     Task<Result> UpdateAsync(Guid id, CreateRecipeRequest request);
     Task<Result> DeleteAsync(Guid id);
+    Task<Result<ScrapedRecipeDto>> ScrapeFromUrlAsync(string url);
 }
 
 public record RecipeIngredientRequest(Guid? IngredientId, string FreeText, decimal Amount, UnitType Unit, string CustomUnitDescription);
 
 public record CreateRecipeRequest(
-    string Title, string Description, string Plan,
+    string Title, string Description, string Plan, int Servings, string SourceUrl,
     List<Guid> TagIds, List<RecipeIngredientRequest> Ingredients);

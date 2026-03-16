@@ -22,7 +22,7 @@ public class CreateRecipeHandlerTests
             .ReturnsAsync(false);
 
         var result = await _handler.Handle(
-            new CreateRecipeCommand("Pasta Bolognese", "Lekker recept", "## Stappen\n1. Kook pasta",
+            new CreateRecipeCommand("Pasta Bolognese", "Lekker recept", "## Stappen\n1. Kook pasta", 2, "",
                 [], []),
             CancellationToken.None);
 
@@ -40,7 +40,7 @@ public class CreateRecipeHandlerTests
     public async Task CreateRecipe_WithEmptyTitle_ShouldFail(string? title)
     {
         var result = await _handler.Handle(
-            new CreateRecipeCommand(title!, "", "", [], []),
+            new CreateRecipeCommand(title!, "", "", 2, "", [], []),
             CancellationToken.None);
 
         Assert.False(result.IsSuccess);
@@ -54,7 +54,7 @@ public class CreateRecipeHandlerTests
             .ReturnsAsync(true);
 
         var result = await _handler.Handle(
-            new CreateRecipeCommand("Pasta", "", "", [], []),
+            new CreateRecipeCommand("Pasta", "", "", 2, "", [], []),
             CancellationToken.None);
 
         Assert.False(result.IsSuccess);
@@ -68,7 +68,7 @@ public class CreateRecipeHandlerTests
             .ReturnsAsync(false);
 
         await _handler.Handle(
-            new CreateRecipeCommand("  Soep  ", "", "", [], []),
+            new CreateRecipeCommand("  Soep  ", "", "", 2, "", [], []),
             CancellationToken.None);
 
         _repo.Verify(r => r.AddAsync(
@@ -86,6 +86,7 @@ public class CreateRecipeHandlerTests
 
         var result = await _handler.Handle(
             new CreateRecipeCommand("Salade", "", "",
+                2, "",
                 [tagId],
                 [new RecipeIngredientInput(ingredientId, "Sla", 200, UnitType.Grams, "")]),
             CancellationToken.None);
@@ -94,5 +95,51 @@ public class CreateRecipeHandlerTests
         _repo.Verify(r => r.AddAsync(
             It.Is<Recipe>(rec => rec.RecipeTags.Count == 1 && rec.RecipeIngredients.Count == 1),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-10)]
+    public async Task CreateRecipe_WithInvalidServings_ShouldFail(int servings)
+    {
+        var result = await _handler.Handle(
+            new CreateRecipeCommand("Test", "", "", servings, "", [], []),
+            CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("personen", result.Error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateRecipe_ShouldPersistServings()
+    {
+        _repo.Setup(r => r.ExistsByTitleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        await _handler.Handle(
+            new CreateRecipeCommand("Stoofvlees", "", "", 6, "", [], []),
+            CancellationToken.None);
+
+        _repo.Verify(r => r.AddAsync(
+            It.Is<Recipe>(rec => rec.Servings == 6),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task CreateRecipe_WithInvalidIngredientAmount_ShouldFail(decimal amount)
+    {
+        _repo.Setup(r => r.ExistsByTitleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _handler.Handle(
+            new CreateRecipeCommand("Test", "", "", 2, "", [],
+                [new RecipeIngredientInput(null, "Bloem", amount, UnitType.Grams, "")]),
+            CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Hoeveelheid", result.Error!, StringComparison.OrdinalIgnoreCase);
     }
 }

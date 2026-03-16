@@ -25,7 +25,7 @@ public class UpdateRecipeHandlerTests
             .ReturnsAsync(existing);
 
         var result = await _handler.Handle(
-            new UpdateRecipeCommand(id, "Pasta Bolognese", "Updated", "## Plan", [], []),
+            new UpdateRecipeCommand(id, "Pasta Bolognese", "Updated", "## Plan", 2, "", [], []),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -44,7 +44,7 @@ public class UpdateRecipeHandlerTests
             .ReturnsAsync((Recipe?)null);
 
         var result = await _handler.Handle(
-            new UpdateRecipeCommand(Guid.NewGuid(), "Test", "", "", [], []),
+            new UpdateRecipeCommand(Guid.NewGuid(), "Test", "", "", 2, "", [], []),
             CancellationToken.None);
 
         Assert.False(result.IsSuccess);
@@ -55,7 +55,7 @@ public class UpdateRecipeHandlerTests
     public async Task UpdateRecipe_WithEmptyTitle_ShouldFail()
     {
         var result = await _handler.Handle(
-            new UpdateRecipeCommand(Guid.NewGuid(), "", "", "", [], []),
+            new UpdateRecipeCommand(Guid.NewGuid(), "", "", "", 2, "", [], []),
             CancellationToken.None);
 
         Assert.False(result.IsSuccess);
@@ -80,6 +80,7 @@ public class UpdateRecipeHandlerTests
 
         var result = await _handler.Handle(
             new UpdateRecipeCommand(id, "Pasta", "", "",
+                2, "",
                 [newTagId],
                 [new RecipeIngredientInput(newIngredientId, "Tomaat", 100, UnitType.Grams, "")]),
             CancellationToken.None);
@@ -93,5 +94,48 @@ public class UpdateRecipeHandlerTests
             id,
             It.Is<List<RecipeIngredient>>(list => list.Count == 1 && list[0].IngredientId == newIngredientId),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-10)]
+    public async Task UpdateRecipe_WithInvalidServings_ShouldFail(int servings)
+    {
+        var result = await _handler.Handle(
+            new UpdateRecipeCommand(Guid.NewGuid(), "Test", "", "", servings, "", [], []),
+            CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("personen", result.Error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateRecipe_ShouldPersistServings()
+    {
+        var id = Guid.NewGuid();
+        var existing = new Recipe { Id = id, Title = "Pasta", Servings = 2, RecipeTags = [], RecipeIngredients = [] };
+        _repo.Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        await _handler.Handle(
+            new UpdateRecipeCommand(id, "Pasta", "", "", 8, "", [], []),
+            CancellationToken.None);
+
+        Assert.Equal(8, existing.Servings);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task UpdateRecipe_WithInvalidIngredientAmount_ShouldFail(decimal amount)
+    {
+        var result = await _handler.Handle(
+            new UpdateRecipeCommand(Guid.NewGuid(), "Test", "", "", 2, "", [],
+                [new RecipeIngredientInput(null, "Bloem", amount, UnitType.Grams, "")]),
+            CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Hoeveelheid", result.Error!, StringComparison.OrdinalIgnoreCase);
     }
 }

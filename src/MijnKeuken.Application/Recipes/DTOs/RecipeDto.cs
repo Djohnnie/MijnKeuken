@@ -7,6 +7,8 @@ public record RecipeDto(
     string Title,
     string Description,
     string Plan,
+    int Servings,
+    string SourceUrl,
     List<RecipeTagDto> Tags,
     List<RecipeIngredientDto> Ingredients);
 

@@ -87,6 +87,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(r => r.Title).HasMaxLength(200).IsRequired();
             entity.Property(r => r.Description).HasMaxLength(1000);
             entity.Property(r => r.Plan).HasMaxLength(10000);
+            entity.Property(r => r.Servings).HasDefaultValue(2);
+            entity.Property(r => r.SourceUrl).HasMaxLength(2000).HasDefaultValue(string.Empty);
         });
 
         modelBuilder.Entity<RecipeTag>(entity =>

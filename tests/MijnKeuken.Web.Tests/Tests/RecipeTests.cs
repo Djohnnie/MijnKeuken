@@ -349,4 +349,108 @@ public class RecipeTests : PlaywrightTestBase
 
         await page.Locator("button:has-text('Annuleren')").ClickAsync();
     }
+
+    [Test]
+    public async Task RecipeForm_ServingsField_VisibleWithDefaultValue()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var servingsField = page.GetByLabel("Aantal personen");
+        Assert.That(await servingsField.IsVisibleAsync(), Is.True);
+        Assert.That(await servingsField.InputValueAsync(), Is.EqualTo("2"));
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_ServingsField_EditableOnCreate()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        var servingsField = page.GetByLabel("Aantal personen");
+        Assert.That(await servingsField.GetAttributeAsync("readonly"), Is.Null);
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_Servings_PersistsOnCreateAndReadOnlyOnEdit()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        var title = $"Srv_{Guid.NewGuid():N}"[..14];
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        await page.GetByLabel("Titel").FillAsync(title);
+        var servingsField = page.GetByLabel("Aantal personen");
+        await servingsField.ClearAsync();
+        await servingsField.FillAsync("6");
+
+        await page.Locator("button:has-text('Aanmaken')").ClickAsync();
+        await page.Locator("button:has-text('Nieuw recept')").WaitForAsync(new() { Timeout = 10000 });
+
+        // Edit the recipe
+        var row = page.Locator("tr", new() { HasText = title });
+        await row.Locator("button").Nth(0).ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        // Servings should show the saved value and be read-only
+        var editServings = page.GetByLabel("Aantal personen");
+        Assert.That(await editServings.InputValueAsync(), Is.EqualTo("6"));
+        Assert.That(await editServings.GetAttributeAsync("readonly"), Is.Not.Null);
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_SourceUrl_HiddenOnManualCreate()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        // Source URL field should not be visible when creating manually
+        Assert.That(await page.GetByLabel("Bron URL").IsVisibleAsync(), Is.False);
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
+
+    [Test]
+    public async Task RecipeForm_TitleAndServings_OnSameLine()
+    {
+        await using var context = await CreateContextAsync();
+        var page = await LoginAndNavigateToRecipesAsync(context);
+
+        await page.Locator("button:has-text('Nieuw recept')").ClickAsync();
+        await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
+
+        // Both fields should be visible and on the same line (within same flex container)
+        var titleField = page.GetByLabel("Titel");
+        var servingsField = page.GetByLabel("Aantal personen");
+        Assert.That(await titleField.IsVisibleAsync(), Is.True);
+        Assert.That(await servingsField.IsVisibleAsync(), Is.True);
+
+        // Verify they share the same vertical position (same line)
+        var titleBox = await titleField.BoundingBoxAsync();
+        var servingsBox = await servingsField.BoundingBoxAsync();
+        Assert.That(titleBox, Is.Not.Null);
+        Assert.That(servingsBox, Is.Not.Null);
+        Assert.That(Math.Abs(titleBox!.Y - servingsBox!.Y), Is.LessThan(10),
+            "Title and servings should be on the same line");
+
+        await page.Locator("button:has-text('Annuleren')").ClickAsync();
+    }
 }

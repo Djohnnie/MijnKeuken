@@ -13,6 +13,12 @@ public class CreateRecipeHandler(IRecipeRepository repository)
         if (string.IsNullOrWhiteSpace(request.Title))
             return Result<Guid>.Failure("Titel is verplicht.");
 
+        if (request.Servings <= 0)
+            return Result<Guid>.Failure("Aantal personen moet groter zijn dan 0.");
+
+        if (request.Ingredients.Any(i => i.Amount <= 0))
+            return Result<Guid>.Failure("Hoeveelheid moet groter zijn dan 0.");
+
         if (await repository.ExistsByTitleAsync(request.Title.Trim(), cancellationToken))
             return Result<Guid>.Failure("Er bestaat al een recept met deze titel.");
 
@@ -22,6 +28,8 @@ public class CreateRecipeHandler(IRecipeRepository repository)
             Title = request.Title.Trim(),
             Description = request.Description?.Trim() ?? string.Empty,
             Plan = request.Plan ?? string.Empty,
+            Servings = request.Servings,
+            SourceUrl = request.SourceUrl?.Trim() ?? string.Empty,
             RecipeTags = request.TagIds.Select(tagId => new RecipeTag
             {
                 TagId = tagId

@@ -10,5 +10,7 @@ public record CreateRecipeCommand(
     string Title,
     string Description,
     string Plan,
+    int Servings,
+    string SourceUrl,
     List<Guid> TagIds,
     List<RecipeIngredientInput> Ingredients) : IRequest<Result<Guid>>;

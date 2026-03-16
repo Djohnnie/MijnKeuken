@@ -14,6 +14,12 @@ public class UpdateRecipeHandler(IRecipeRepository repository)
         if (string.IsNullOrWhiteSpace(request.Title))
             return Result.Failure("Titel is verplicht.");
 
+        if (request.Servings <= 0)
+            return Result.Failure("Aantal personen moet groter zijn dan 0.");
+
+        if (request.Ingredients.Any(i => i.Amount <= 0))
+            return Result.Failure("Hoeveelheid moet groter zijn dan 0.");
+
         var recipe = await repository.GetByIdAsync(request.Id, cancellationToken);
         if (recipe is null)
             return Result.Failure("Recept niet gevonden.");
@@ -21,6 +27,8 @@ public class UpdateRecipeHandler(IRecipeRepository repository)
         recipe.Title = request.Title.Trim();
         recipe.Description = request.Description?.Trim() ?? string.Empty;
         recipe.Plan = request.Plan ?? string.Empty;
+        recipe.Servings = request.Servings;
+        recipe.SourceUrl = request.SourceUrl?.Trim() ?? string.Empty;
 
         recipe.RecipeTags.Clear();
         recipe.RecipeTags.AddRange(request.TagIds.Select(tagId => new RecipeTag

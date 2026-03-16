@@ -7,6 +7,7 @@
 @inject ITagService TagService
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
+@inject ScrapedRecipeState ScrapedState
 
 <PageTitle>Recepten</PageTitle>
 
@@ -14,6 +15,10 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
         <MudText Typo="Typo.h4">Recepten</MudText>
         <MudSpacer />
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Rounded.Language" OnClick="OpenScrapeDialog">
+            Scrape van URL
+        </MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                    StartIcon="@Icons.Material.Rounded.Add" OnClick="NavigateToCreate">
             Nieuw recept
@@ -81,6 +86,16 @@
     {
         <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
     }
+
+    @if (_isScraping)
+    {
+        <MudOverlay Visible="true" DarkBackground="true" ZIndex="9999" AutoClose="false">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.h6" Color="Color.Surface">Recept wordt geanalyseerd...</MudText>
+            </MudStack>
+        </MudOverlay>
+    }
 </MudContainer>
 
 @code {
@@ -89,6 +104,7 @@
     private string _searchString = string.Empty;
     private Guid? _tagFilter;
     private string? _errorMessage;
+    private bool _isScraping;
 
     private IEnumerable<RecipeDto> FilteredRecipes => _recipes?.Where(FilterFunc) ?? [];
 
@@ -143,6 +159,43 @@
                 await LoadData();
             else
                 _errorMessage = deleteResult.Error;
+        }
+    }
+
+    private async Task OpenScrapeDialog()
+    {
+        var urlDialog = await DialogService.ShowAsync<ScrapeUrlDialog>("Recept scrapen",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var urlResult = await urlDialog.Result;
+
+        if (urlResult is { Canceled: false, Data: string url })
+        {
+            _errorMessage = null;
+            _isScraping = true;
+            StateHasChanged();
+
+            try
+            {
+                var scrapeResult = await RecipeService.ScrapeFromUrlAsync(url);
+                if (scrapeResult.IsSuccess)
+                {
+                    ScrapedState.Data = scrapeResult.Value;
+                    ScrapedState.SourceUrl = url;
+                    Navigation.NavigateTo("/recipes/new");
+                    return;
+                }
+
+                _errorMessage = scrapeResult.Error;
+            }
+            catch (Exception)
+            {
+                _errorMessage = "Er ging iets mis bij het scrapen.";
+            }
+            finally
+            {
+                _isScraping = false;
+                StateHasChanged();
+            }
         }
     }
 }

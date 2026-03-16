@@ -12,6 +12,8 @@
 @inject IIngredientService IngredientService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ScrapedRecipeState ScrapedState
 
 <PageTitle>@(_isEdit ? "Recept bewerken" : "Nieuw recept")</PageTitle>
 
@@ -34,12 +36,32 @@
             <MudText Typo="Typo.h4">@(_isEdit ? "Recept bewerken" : "Nieuw recept")</MudText>
         </MudStack>
 
-        <MudTextField T="string" @bind-Value="_title" Label="Titel" Required="true"
-                      RequiredError="Titel is verplicht" Variant="Variant.Outlined"
-                      Immediate="true" Class="mb-3" Margin="Margin.Dense" />
+        <div style="display:flex;gap:16px;width:100%;align-items:start;" class="mb-3">
+            <MudTextField T="string" @bind-Value="_title" Label="Titel" Required="true"
+                          RequiredError="Titel is verplicht" Variant="Variant.Outlined"
+                          Immediate="true" Margin="Margin.Dense" Style="flex:1;min-width:0;" />
+            <div style="width:190px;flex-shrink:0;">
+                <MudNumericField T="int" @bind-Value="_servings" Label="Aantal personen" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" Min="1" Max="99"
+                                 ReadOnly="@_isEdit"
+                                 Adornment="@(_isEdit ? Adornment.End : Adornment.None)"
+                                 AdornmentIcon="@Icons.Material.Rounded.Calculate"
+                                 AdornmentColor="Color.Primary" OnAdornmentClick="OpenRecalculateDialog" />
+            </div>
+        </div>
 
         <MudTextField T="string" @bind-Value="_description" Label="Omschrijving" Variant="Variant.Outlined"
-                      Margin="Margin.Dense" Class="mb-3" Lines="2" />
+                      Margin="Margin.Dense" Class="mb-3" Sizing="InputSizing.Auto" Lines="2" MaxLines="8" />
+
+        @if (!string.IsNullOrWhiteSpace(_sourceUrl))
+        {
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudTextField T="string" @bind-Value="_sourceUrl" Label="Bron URL" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" ReadOnly="true" Style="flex:1;" />
+                <MudIconButton Icon="@Icons.Material.Rounded.OpenInNew" Size="Size.Small" Color="Color.Primary"
+                               Href="@_sourceUrl" Target="_blank" Title="Bronpagina openen" />
+            </MudStack>
+        }
 
         <MudText Typo="Typo.body2" Class="mb-1">Plan (Markdown)</MudText>
         <MudTabs Elevation="0" Border="true" ApplyEffectsToContainer="true" Class="mb-3" MinimumTabWidth="80px">
@@ -123,8 +145,9 @@
                 </TemplateColumn>
                 <TemplateColumn T="RecipeIngredientModel" Title="Hoeveelheid" Sortable="false" Filterable="false" CellStyle="width:110px;">
                     <CellTemplate>
-                        <MudNumericField T="int" @bind-Value="context.Item.Amount"
-                                         Variant="Variant.Text" Margin="Margin.Dense" Min="0" DisableUnderLine="true" />
+                        <MudNumericField T="decimal" @bind-Value="context.Item.Amount"
+                                         Variant="Variant.Text" Margin="Margin.Dense" Min="0.01m" DisableUnderLine="true"
+                                         Format="G29" />
                     </CellTemplate>
                 </TemplateColumn>
                 <TemplateColumn T="RecipeIngredientModel" Title="Eenheid" Sortable="false" Filterable="false" CellStyle="width:130px;">
@@ -189,6 +212,8 @@
     private string _title = string.Empty;
     private string _description = string.Empty;
     private string _plan = string.Empty;
+    private int _servings = 2;
+    private string _sourceUrl = string.Empty;
     private List<Guid> _selectedTagIds = [];
     private List<RecipeIngredientModel> _selectedIngredients = [];
     private List<TagDto> _availableTags = [];
@@ -222,6 +247,8 @@
             _title = recipe.Title;
             _description = recipe.Description;
             _plan = recipe.Plan;
+            _servings = recipe.Servings;
+            _sourceUrl = recipe.SourceUrl;
             _selectedTagIds = recipe.Tags.Select(t => t.TagId).ToList();
             _selectedIngredients = recipe.Ingredients.Select(i => new RecipeIngredientModel
             {
@@ -229,7 +256,7 @@
                 DisplayName = i.IngredientTitle,
                 FreeText = i.FreeText,
                 IsManaged = i.IsManaged,
-                Amount = (int)i.Amount,
+                Amount = i.Amount,
                 Unit = i.Unit,
                 CustomUnitDescription = i.CustomUnitDescription
             }).ToList();
@@ -237,6 +264,34 @@
         else
         {
             await Task.WhenAll(tagsTask, ingredientsTask);
+
+            var (scraped, sourceUrl) = ScrapedState.Consume();
+            if (scraped is not null)
+            {
+                _title = scraped.Title;
+                _description = scraped.Description;
+                _plan = scraped.Plan;
+                _servings = scraped.Servings ?? 2;
+                _sourceUrl = sourceUrl;
+                _selectedIngredients = scraped.Ingredients.Select(i =>
+                {
+                    var unitType = i.Unit.Contains("gram", StringComparison.OrdinalIgnoreCase)
+                        || i.Unit.Contains("kg", StringComparison.OrdinalIgnoreCase)
+                        || i.Unit.Contains("ml", StringComparison.OrdinalIgnoreCase)
+                        || i.Unit.Contains("liter", StringComparison.OrdinalIgnoreCase)
+                            ? UnitType.Grams
+                            : UnitType.Units;
+
+                    return new RecipeIngredientModel
+                    {
+                        DisplayName = i.Name,
+                        FreeText = i.Name,
+                        IsManaged = false,
+                        Amount = i.Amount,
+                        Unit = unitType
+                    };
+                }).ToList();
+            }
         }
 
         _availableTags = tagsTask.Result.Where(t => t.Type == TagType.Recipe).ToList();
@@ -330,6 +385,30 @@
     private void RemoveIngredient(RecipeIngredientModel item)
         => _selectedIngredients.Remove(item);
 
+    private async Task OpenRecalculateDialog()
+    {
+        var currentServings = _servings;
+        var parameters = new DialogParameters<RecalculateServingsDialog>
+        {
+            { x => x.CurrentServings, currentServings }
+        };
+
+        var dialog = await DialogService.ShowAsync<RecalculateServingsDialog>(
+            "Herberekenen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: int newServings } && newServings != currentServings)
+        {
+            var ratio = (decimal)newServings / currentServings;
+            foreach (var ingredient in _selectedIngredients)
+            {
+                ingredient.Amount = Math.Round(ingredient.Amount * ratio, 2);
+            }
+            _servings = newServings;
+        }
+    }
+
     private async Task Submit()
     {
         if (string.IsNullOrWhiteSpace(_title)) return;
@@ -341,6 +420,8 @@
             _title.Trim(),
             _description?.Trim() ?? string.Empty,
             _plan ?? string.Empty,
+            _servings,
+            _sourceUrl?.Trim() ?? string.Empty,
             _selectedTagIds.ToList(),
             _selectedIngredients.Select(i =>
                 new RecipeIngredientRequest(i.IngredientId, i.FreeText, i.Amount, i.Unit, i.CustomUnitDescription ?? string.Empty)).ToList());
@@ -384,7 +465,7 @@
         public string FreeText { get; set; } = string.Empty;
         public bool IsManaged { get; set; }
         public bool IsNewRow { get; set; }
-        public int Amount { get; set; } = 1;
+        public decimal Amount { get; set; } = 1;
         public UnitType Unit { get; set; } = UnitType.Units;
         public string CustomUnitDescription { get; set; } = string.Empty;
     }
