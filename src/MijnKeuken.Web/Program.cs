@@ -1,7 +1,8 @@
-using System.Text;
+using Azure.AI.OpenAI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.IdentityModel.Tokens;
 using MijnKeuken.Infrastructure;
 using MijnKeuken.Infrastructure.Persistence;
@@ -9,6 +10,10 @@ using MijnKeuken.Web.Auth;
 using MijnKeuken.Web.Components;
 using MijnKeuken.Web.Services;
 using MudBlazor.Services;
+using OpenAI;
+using System.ClientModel;
+using System.Net;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +52,16 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
 builder.Services.AddAuthorizationCore();
 
 builder.Services.AddHttpClient();
+
+var openAiEndpoint = builder.Configuration.GetValue<string>("OPENAI_ENDPOINT") ?? "";
+var openAiApiKey = builder.Configuration.GetValue<string>("OPENAI_KEY") ?? "";
+var openAiModel = builder.Configuration.GetValue<string>("OPENAI_MODEL") ?? "";
+
+builder.Services.AddSingleton<IChatClient>(_ =>
+    new AzureOpenAIClient(new Uri(openAiEndpoint), new ApiKeyCredential(openAiApiKey))
+        .GetChatClient(openAiModel)
+        .AsIChatClient());
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITagService, TagService>();

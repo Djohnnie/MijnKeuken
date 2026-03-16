@@ -10,6 +10,7 @@ public interface IIngredientService
     Task<Result<Guid>> CreateAsync(CreateIngredientRequest request);
     Task<Result> UpdateAsync(Guid id, CreateIngredientRequest request);
     Task<Result> DeleteAsync(Guid id);
+    Task<Result<ScrapedIngredientDto>> ScrapeFromUrlAsync(string url);
 }
 
 public record CreateIngredientRequest(

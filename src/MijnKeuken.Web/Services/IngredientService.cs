@@ -14,6 +14,7 @@ public class IngredientService(
 {
     private record ErrorResponse(string Error);
     private record CreateResponse(Guid Id);
+    private record ScrapeRequest(string Url);
 
     public async Task<List<IngredientDto>> GetAllAsync()
     {
@@ -58,6 +59,23 @@ public class IngredientService(
 
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         return Result.Failure(error?.Error ?? "Ingrediënt verwijderen mislukt.");
+    }
+
+    public async Task<Result<ScrapedIngredientDto>> ScrapeFromUrlAsync(string url)
+    {
+        using var client = CreateClient();
+        var response = await client.PostAsJsonAsync("api/ingredients/scrape", new ScrapeRequest(url));
+
+        if (response.IsSuccessStatusCode)
+        {
+            var scraped = await response.Content.ReadFromJsonAsync<ScrapedIngredientDto>();
+            return scraped is not null
+                ? Result<ScrapedIngredientDto>.Success(scraped)
+                : Result<ScrapedIngredientDto>.Failure("Geen gegevens ontvangen.");
+        }
+
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        return Result<ScrapedIngredientDto>.Failure(error?.Error ?? "Scrapen mislukt.");
     }
 
     private HttpClient CreateClient()

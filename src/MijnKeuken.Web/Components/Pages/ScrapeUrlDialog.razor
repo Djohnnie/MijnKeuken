@@ -1,0 +1,33 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Plak de URL van een productpagina om ingrediëntgegevens automatisch op te halen.
+        </MudText>
+        <MudTextField T="string" @bind-Value="Url" Label="Product URL" Placeholder="https://..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Link" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Size="Size.Small">Annuleren</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small"
+                   OnClick="Submit" Disabled="@(!IsValidUrl)">
+            Ophalen
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string Url { get; set; } = string.Empty;
+
+    private bool IsValidUrl =>
+        Uri.TryCreate(Url?.Trim(), UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Url.Trim()));
+    private void Cancel() => MudDialog.Cancel();
+}

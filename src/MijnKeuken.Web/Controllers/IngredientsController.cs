@@ -5,6 +5,7 @@ using MijnKeuken.Application.Ingredients.Commands.CreateIngredient;
 using MijnKeuken.Application.Ingredients.Commands.DeleteIngredient;
 using MijnKeuken.Application.Ingredients.Commands.UpdateIngredient;
 using MijnKeuken.Application.Ingredients.Queries.GetIngredients;
+using MijnKeuken.Application.Ingredients.Queries.ScrapeIngredient;
 using MijnKeuken.Domain.Entities;
 
 namespace MijnKeuken.Web.Controllers;
@@ -57,6 +58,15 @@ public class IngredientsController(IMediator mediator) : ControllerBase
             request.Barcode, request.StoreUrl, request.IsOutOfStock,
             request.StorageLocationId, request.TagIds));
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
+
+    public record ScrapeIngredientRequest(string Url);
+
+    [HttpPost("scrape")]
+    public async Task<IActionResult> Scrape([FromBody] ScrapeIngredientRequest request)
+    {
+        var result = await mediator.Send(new ScrapeIngredientFromUrlQuery(request.Url));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
     [HttpDelete("{id:guid}")]

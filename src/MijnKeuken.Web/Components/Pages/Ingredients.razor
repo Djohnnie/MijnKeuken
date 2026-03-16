@@ -19,6 +19,10 @@
                    StartIcon="@Icons.Material.Rounded.Add" OnClick="OpenCreateDialog">
             Nieuw ingrediënt
         </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Rounded.Language" OnClick="OpenScrapeDialog">
+            Scrape van URL
+        </MudButton>
     </MudStack>
 
     @if (_ingredients is null)
@@ -96,6 +100,16 @@
     {
         <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
     }
+
+    @if (_isScraping)
+    {
+        <MudOverlay Visible="true" DarkBackground="true" ZIndex="9999" AutoClose="false">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.h6" Color="Color.Surface">Pagina wordt geanalyseerd...</MudText>
+            </MudStack>
+        </MudOverlay>
+    }
 </MudContainer>
 
 @code {
@@ -106,6 +120,7 @@
     private Guid? _storageFilter;
     private Guid? _tagFilter;
     private string? _errorMessage;
+    private bool _isScraping;
 
     private IEnumerable<IngredientDto> FilteredIngredients => _ingredients?.Where(FilterFunc) ?? [];
 
@@ -252,6 +267,79 @@
                 await LoadData();
             else
                 _errorMessage = deleteResult.Error;
+        }
+    }
+
+    private async Task OpenScrapeDialog()
+    {
+        var urlDialog = await DialogService.ShowAsync<ScrapeUrlDialog>("Ingrediënt scrapen",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var urlResult = await urlDialog.Result;
+
+        if (urlResult is { Canceled: false, Data: string url })
+        {
+            _errorMessage = null;
+            _isScraping = true;
+            StateHasChanged();
+
+            Application.Ingredients.DTOs.ScrapedIngredientDto? scraped = null;
+            try
+            {
+                var scrapeResult = await IngredientService.ScrapeFromUrlAsync(url);
+                if (scrapeResult.IsSuccess)
+                    scraped = scrapeResult.Value!;
+                else
+                    _errorMessage = scrapeResult.Error;
+            }
+            finally
+            {
+                _isScraping = false;
+                StateHasChanged();
+            }
+
+            if (scraped is not null)
+                await OpenCreateDialogWithSuggestion(scraped, url);
+        }
+    }
+
+    private async Task OpenCreateDialogWithSuggestion(
+        Application.Ingredients.DTOs.ScrapedIngredientDto scraped, string sourceUrl)
+    {
+        var parameters = new DialogParameters<IngredientDialog>
+        {
+            { x => x.IsEdit, false },
+            { x => x.Title, scraped.Title },
+            { x => x.Description, scraped.Description },
+            { x => x.AmountAvailable, scraped.Amount },
+            { x => x.AmountTotal, scraped.Amount },
+            { x => x.Unit, scraped.Unit },
+            { x => x.CustomUnitDescription, string.Empty },
+            { x => x.Barcode, string.Empty },
+            { x => x.StoreUrl, sourceUrl },
+            { x => x.IsOutOfStock, false },
+            { x => x.SelectedStorageLocationId, null },
+            { x => x.SelectedTagIds, new List<Guid>() },
+            { x => x.AvailableTags, _ingredientTags },
+            { x => x.AvailableStorageLocations, _storageLocations }
+        };
+
+        var dialog = await DialogService.ShowAsync<IngredientDialog>("Nieuw ingrediënt (gescrapet)", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: IngredientDialog.IngredientFormResult formResult })
+        {
+            _errorMessage = null;
+            var createResult = await IngredientService.CreateAsync(new CreateIngredientRequest(
+                formResult.Title, formResult.Description,
+                formResult.AmountAvailable, formResult.AmountTotal,
+                formResult.Unit, formResult.CustomUnitDescription,
+                formResult.Barcode, formResult.StoreUrl, formResult.IsOutOfStock,
+                formResult.StorageLocationId, formResult.TagIds));
+            if (createResult.IsSuccess)
+                await LoadData();
+            else
+                _errorMessage = createResult.Error;
         }
     }
 }
