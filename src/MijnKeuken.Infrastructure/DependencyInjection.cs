@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IIngredientScraperService, IngredientScraperService>();
         services.AddScoped<IRecipeScraperService, RecipeScraperService>();
+        services.AddScoped<IIngredientMatchingService, IngredientMatchingService>();
 
         var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
             ?? "MijnKeuken-Dev-Secret-Key-Min-32-Characters!!";

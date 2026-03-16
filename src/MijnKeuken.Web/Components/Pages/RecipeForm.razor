@@ -307,9 +307,10 @@
 
                     return new RecipeIngredientModel
                     {
-                        DisplayName = i.Name,
-                        FreeText = i.Name,
-                        IsManaged = false,
+                        DisplayName = i.MatchedIngredientTitle ?? i.Name,
+                        FreeText = i.MatchedIngredientTitle ?? i.Name,
+                        IngredientId = i.MatchedIngredientId,
+                        IsManaged = i.MatchedIngredientId.HasValue,
                         Amount = i.Amount,
                         Unit = unitType,
                         SortOrder = index

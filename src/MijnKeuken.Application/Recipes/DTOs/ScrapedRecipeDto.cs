@@ -20,4 +20,6 @@ public record ScrapedRecipeIngredientDto(
     [property: Description("The amount/quantity needed (e.g. 200 for 200g, 2 for 2 pieces)")]
     decimal Amount,
     [property: Description("The unit: Grams for weight-based (g, kg, ml, l), Units for countable items (stuks, el, tl, snuf, bos)")]
-    string Unit);
+    string Unit,
+    Guid? MatchedIngredientId = null,
+    string? MatchedIngredientTitle = null);
