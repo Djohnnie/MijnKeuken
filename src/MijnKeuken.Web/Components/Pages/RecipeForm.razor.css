@@ -1,0 +1,4 @@
+.markdown-preview ::deep ol,
+.markdown-preview ::deep ul {
+    padding-left: 2rem;
+}

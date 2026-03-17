@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MijnKeuken.Application.Recipes.Commands.ArchiveRecipe;
 using MijnKeuken.Application.Recipes.Commands.CreateRecipe;
 using MijnKeuken.Application.Recipes.Commands.DeleteRecipe;
 using MijnKeuken.Application.Recipes.Commands.UpdateRecipe;
@@ -86,6 +87,13 @@ public class RecipesController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await mediator.Send(new DeleteRecipeCommand(id));
+        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPatch("{id:guid}/archive")]
+    public async Task<IActionResult> Archive(Guid id)
+    {
+        var result = await mediator.Send(new ArchiveRecipeCommand(id));
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
     }
 }

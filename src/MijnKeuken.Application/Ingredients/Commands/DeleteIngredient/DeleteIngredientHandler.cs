@@ -13,6 +13,9 @@ public class DeleteIngredientHandler(IIngredientRepository repository)
         if (ingredient is null)
             return Result.Failure("Ingrediënt niet gevonden.");
 
+        if (await repository.IsInUseAsync(request.Id, cancellationToken))
+            return Result.Failure("Dit ingrediënt is in gebruik in een recept en kan niet worden verwijderd.");
+
         await repository.DeleteAsync(ingredient, cancellationToken);
 
         return Result.Success();

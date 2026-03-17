@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Playwright;
 
-namespace MijnKeuken.Web.Tests.Helpers;
+namespace MijnKeuken.Web.Tests;
 
 /// <summary>
 /// Assembly-level fixture that starts the web application once for all tests

@@ -11,6 +11,7 @@ public class Ingredient : BaseEntity
     public string Barcode { get; set; } = string.Empty;
     public string StoreUrl { get; set; } = string.Empty;
     public bool IsOutOfStock { get; set; }
+    public bool IsArchived { get; set; }
 
     public Guid? StorageLocationId { get; set; }
     public StorageLocation? StorageLocation { get; set; }

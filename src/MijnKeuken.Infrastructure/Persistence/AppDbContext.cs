@@ -125,7 +125,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(ri => ri.Ingredient)
                 .WithMany()
                 .HasForeignKey(ri => ri.IngredientId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
         });
 
@@ -137,7 +137,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(e => e.Recipe)
                 .WithMany()
                 .HasForeignKey(e => e.RecipeId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 

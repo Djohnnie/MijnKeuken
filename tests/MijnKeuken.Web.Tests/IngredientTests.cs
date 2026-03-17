@@ -1,4 +1,4 @@
-using MijnKeuken.Web.Tests.Helpers;
+
 
 namespace MijnKeuken.Web.Tests;
 
@@ -115,7 +115,7 @@ public class IngredientTests : PlaywrightTestBase
 
         // Click the delete button (second icon button in the row)
         var row = page.Locator("tr", new() { HasText = title });
-        await row.Locator("button").Nth(1).ClickAsync();
+        await row.Locator("button").Nth(2).ClickAsync();
 
         // Confirm deletion
         var dialog = page.Locator(".mud-dialog");

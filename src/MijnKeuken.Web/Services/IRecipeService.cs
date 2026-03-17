@@ -11,6 +11,7 @@ public interface IRecipeService
     Task<Result<Guid>> CreateAsync(CreateRecipeRequest request);
     Task<Result> UpdateAsync(Guid id, CreateRecipeRequest request);
     Task<Result> DeleteAsync(Guid id);
+    Task<Result> ArchiveAsync(Guid id);
     Task<Result<ScrapedRecipeDto>> ScrapeFromUrlAsync(string url);
     Task<Result<ScrapedRecipeDto>> ScrapeFromImageAsync(byte[] imageData, string contentType);
 }

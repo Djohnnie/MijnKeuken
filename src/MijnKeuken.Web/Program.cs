@@ -81,6 +81,7 @@ builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<ScrapedRecipeState>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IArchiveService, ArchiveService>();
 
 var app = builder.Build();
 

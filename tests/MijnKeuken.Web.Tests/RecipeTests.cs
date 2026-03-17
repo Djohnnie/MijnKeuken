@@ -1,4 +1,4 @@
-using MijnKeuken.Web.Tests.Helpers;
+
 
 namespace MijnKeuken.Web.Tests;
 
@@ -102,16 +102,24 @@ public class RecipeTests : PlaywrightTestBase
         await page.GetByLabel("Titel").WaitForAsync(new() { Timeout = 5000 });
 
         var titleField = page.GetByLabel("Titel");
-        await titleField.ClearAsync();
-        await titleField.FillAsync(updatedTitle);
+        await titleField.ClickAsync();
+        await titleField.PressAsync("Control+a");
+        await titleField.PressSequentiallyAsync(updatedTitle, new() { Delay = 50 });
+        await page.WaitForTimeoutAsync(500);
 
         await page.Locator("button:has-text('Opslaan')").ClickAsync();
 
         // Should navigate back to recipes list
         await page.Locator("button:has-text('Nieuw recept')").WaitForAsync(new() { Timeout = 10000 });
 
+        // Search for the updated title to handle pagination
+        var searchBox = page.GetByPlaceholder("Zoeken op titel...");
+        await searchBox.ClickAsync();
+        await searchBox.PressSequentiallyAsync(updatedTitle, new() { Delay = 50 });
+        await page.WaitForTimeoutAsync(1000);
+
         var updatedCell = page.Locator("td[data-label='Titel']", new() { HasTextString = updatedTitle });
-        await updatedCell.WaitForAsync(new() { Timeout = 5000 });
+        await updatedCell.WaitForAsync(new() { Timeout = 10000 });
         Assert.That(await updatedCell.IsVisibleAsync(), Is.True);
     }
 
@@ -129,7 +137,7 @@ public class RecipeTests : PlaywrightTestBase
         await titleCell.WaitForAsync(new() { Timeout = 5000 });
 
         var row = page.Locator("tr", new() { HasText = title });
-        await row.Locator("button").Nth(1).ClickAsync();
+        await row.Locator("button").Nth(2).ClickAsync();
 
         var dialog = page.Locator(".mud-dialog");
         await dialog.WaitForAsync(new() { Timeout = 5000 });

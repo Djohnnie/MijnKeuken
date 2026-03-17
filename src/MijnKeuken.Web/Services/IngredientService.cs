@@ -61,6 +61,18 @@ public class IngredientService(
         return Result.Failure(error?.Error ?? "Ingrediënt verwijderen mislukt.");
     }
 
+    public async Task<Result> ArchiveAsync(Guid id)
+    {
+        using var client = CreateClient();
+        var response = await client.PatchAsync($"api/ingredients/{id}/archive", null);
+
+        if (response.IsSuccessStatusCode)
+            return Result.Success();
+
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        return Result.Failure(error?.Error ?? "Ingrediënt archiveren mislukt.");
+    }
+
     public async Task<Result<ScrapedIngredientDto>> ScrapeFromUrlAsync(string url)
     {
         using var client = CreateClient();

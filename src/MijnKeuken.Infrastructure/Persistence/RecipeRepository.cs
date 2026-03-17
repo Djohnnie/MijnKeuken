@@ -14,8 +14,15 @@ public class RecipeRepository(AppDbContext db) : IRecipeRepository
 
     public async Task<List<Recipe>> GetAllAsync(CancellationToken ct = default)
         => await db.Recipes
+            .Where(r => !r.IsArchived)
             .Include(r => r.RecipeTags).ThenInclude(rt => rt.Tag)
             .Include(r => r.RecipeIngredients).ThenInclude(ri => ri.Ingredient!)
+            .OrderBy(r => r.Title)
+            .ToListAsync(ct);
+
+    public async Task<List<Recipe>> GetArchivedAsync(CancellationToken ct = default)
+        => await db.Recipes
+            .Where(r => r.IsArchived)
             .OrderBy(r => r.Title)
             .ToListAsync(ct);
 
@@ -51,6 +58,9 @@ public class RecipeRepository(AppDbContext db) : IRecipeRepository
         if (newIngredients.Count > 0)
             db.RecipeIngredients.AddRange(newIngredients);
     }
+
+    public async Task<bool> IsInUseAsync(Guid id, CancellationToken ct = default)
+        => await db.MenuEntries.AnyAsync(e => e.RecipeId == id, ct);
 
     public async Task DeleteAsync(Recipe recipe, CancellationToken ct = default)
     {

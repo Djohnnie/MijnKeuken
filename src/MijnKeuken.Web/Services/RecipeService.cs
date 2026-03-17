@@ -69,6 +69,18 @@ public class RecipeService(
         return Result.Failure(error?.Error ?? "Recept verwijderen mislukt.");
     }
 
+    public async Task<Result> ArchiveAsync(Guid id)
+    {
+        using var client = CreateClient();
+        var response = await client.PatchAsync($"api/recipes/{id}/archive", null);
+
+        if (response.IsSuccessStatusCode)
+            return Result.Success();
+
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        return Result.Failure(error?.Error ?? "Recept archiveren mislukt.");
+    }
+
     public async Task<Result<ScrapedRecipeDto>> ScrapeFromUrlAsync(string url)
     {
         using var client = CreateClient();

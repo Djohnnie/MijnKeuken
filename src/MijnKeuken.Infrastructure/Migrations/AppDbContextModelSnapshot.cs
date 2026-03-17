@@ -51,6 +51,9 @@ namespace MijnKeuken.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsOutOfStock")
                         .HasColumnType("bit");
 
@@ -169,6 +172,9 @@ namespace MijnKeuken.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Plan")
                         .IsRequired()
@@ -435,7 +441,7 @@ namespace MijnKeuken.Infrastructure.Migrations
                     b.HasOne("MijnKeuken.Domain.Entities.Recipe", "Recipe")
                         .WithMany()
                         .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Recipe");
                 });
@@ -445,7 +451,7 @@ namespace MijnKeuken.Infrastructure.Migrations
                     b.HasOne("MijnKeuken.Domain.Entities.Ingredient", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MijnKeuken.Domain.Entities.Recipe", "Recipe")
                         .WithMany("RecipeIngredients")

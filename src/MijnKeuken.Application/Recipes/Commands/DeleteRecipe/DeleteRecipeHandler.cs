@@ -13,6 +13,9 @@ public class DeleteRecipeHandler(IRecipeRepository repository)
         if (recipe is null)
             return Result.Failure("Recept niet gevonden.");
 
+        if (await repository.IsInUseAsync(request.Id, cancellationToken))
+            return Result.Failure("Dit recept is in gebruik in het menu en kan niet worden verwijderd.");
+
         await repository.DeleteAsync(recipe, cancellationToken);
         return Result.Success();
     }

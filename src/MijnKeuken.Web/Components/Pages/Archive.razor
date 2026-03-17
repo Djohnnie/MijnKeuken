@@ -1,0 +1,140 @@
+@page "/archive"
+@using MijnKeuken.Application.Archive.DTOs
+@using MijnKeuken.Web.Services
+@inject IArchiveService ArchiveService
+@inject IDialogService DialogService
+
+<PageTitle>Archief</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <MudText Typo="Typo.h4" Class="mb-3">Archief</MudText>
+
+    @if (_items is null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Medium" />
+    }
+    else
+    {
+        <MudStack Row="true" Spacing="2" Class="mb-3" AlignItems="AlignItems.End">
+            <MudTextField T="string" @bind-Value="_searchString" Placeholder="Zoeken op titel..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Rounded.Search"
+                          IconSize="Size.Small" Immediate="true" Margin="Margin.Dense"
+                          Variant="Variant.Outlined" Style="max-width:300px;" />
+            <MudChipSet T="ArchiveFilter" SelectionMode="SelectionMode.SingleSelection" @bind-SelectedValue="_typeFilter">
+                <MudChip T="ArchiveFilter" Value="ArchiveFilter.All"
+                         Variant="Variant.Outlined" Color="Color.Default" SelectedColor="Color.Primary">
+                    Alles
+                </MudChip>
+                <MudChip T="ArchiveFilter" Value="ArchiveFilter.Recipes"
+                         Variant="Variant.Outlined" Color="Color.Default" SelectedColor="Color.Primary"
+                         Icon="@Icons.Material.Rounded.MenuBook">
+                    Recepten
+                </MudChip>
+                <MudChip T="ArchiveFilter" Value="ArchiveFilter.Ingredients"
+                         Variant="Variant.Outlined" Color="Color.Default" SelectedColor="Color.Primary"
+                         Icon="@Icons.Material.Rounded.Egg">
+                    Ingrediënten
+                </MudChip>
+            </MudChipSet>
+        </MudStack>
+
+        <MudTable Items="@FilteredItems" Hover="true" Dense="true" Elevation="0" Class="border-table">
+            <HeaderContent>
+                <MudTh>Titel</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh Style="width:80px;">Acties</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Titel">@context.Title</MudTd>
+                <MudTd DataLabel="Type">
+                    @if (context.Type == ArchivedItemType.Recipe)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                                 Icon="@Icons.Material.Rounded.MenuBook">Recept</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined"
+                                 Icon="@Icons.Material.Rounded.Egg">Ingrediënt</MudChip>
+                    }
+                </MudTd>
+                <MudTd>
+                    <MudTooltip Text="Herstellen">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Unarchive" Size="Size.Small" Color="Color.Success"
+                                       OnClick="() => ConfirmUnarchive(context)" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" RowsPerPageString="Rijen per pagina:" />
+            </PagerContent>
+        </MudTable>
+    }
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true" Variant="Variant.Outlined">@_errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private List<ArchivedItemDto>? _items;
+    private string _searchString = string.Empty;
+    private ArchiveFilter _typeFilter = ArchiveFilter.All;
+    private string? _errorMessage;
+
+    private IEnumerable<ArchivedItemDto> FilteredItems => _items?.Where(FilterFunc) ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _items = await ArchiveService.GetAllAsync();
+    }
+
+    private bool FilterFunc(ArchivedItemDto item)
+    {
+        if (!string.IsNullOrWhiteSpace(_searchString)
+            && !item.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (_typeFilter == ArchiveFilter.Recipes && item.Type != ArchivedItemType.Recipe)
+            return false;
+        if (_typeFilter == ArchiveFilter.Ingredients && item.Type != ArchivedItemType.Ingredient)
+            return false;
+        return true;
+    }
+
+    private enum ArchiveFilter { All, Recipes, Ingredients }
+
+    private async Task ConfirmUnarchive(ArchivedItemDto item)
+    {
+        var typeName = item.Type == ArchivedItemType.Recipe ? "recept" : "ingrediënt";
+
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Weet je zeker dat je {typeName} \"{item.Title}\" wilt herstellen uit het archief?" },
+            { x => x.ConfirmText, "Herstellen" },
+            { x => x.ConfirmColor, Color.Success }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Item herstellen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _errorMessage = null;
+            var unarchiveResult = item.Type == ArchivedItemType.Recipe
+                ? await ArchiveService.UnarchiveRecipeAsync(item.Id)
+                : await ArchiveService.UnarchiveIngredientAsync(item.Id);
+
+            if (unarchiveResult.IsSuccess)
+                await LoadData();
+            else
+                _errorMessage = unarchiveResult.Error;
+        }
+    }
+}

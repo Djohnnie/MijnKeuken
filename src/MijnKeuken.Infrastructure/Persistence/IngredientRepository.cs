@@ -15,9 +15,16 @@ public class IngredientRepository(AppDbContext db) : IIngredientRepository
 
     public async Task<List<Ingredient>> GetAllAsync(CancellationToken ct = default)
         => await db.Ingredients
+            .Where(i => !i.IsArchived)
             .Include(i => i.StorageLocation)
             .Include(i => i.IngredientTags)
                 .ThenInclude(it => it.Tag)
+            .OrderBy(i => i.Title)
+            .ToListAsync(ct);
+
+    public async Task<List<Ingredient>> GetArchivedAsync(CancellationToken ct = default)
+        => await db.Ingredients
+            .Where(i => i.IsArchived)
             .OrderBy(i => i.Title)
             .ToListAsync(ct);
 
@@ -34,6 +41,9 @@ public class IngredientRepository(AppDbContext db) : IIngredientRepository
     {
         await db.SaveChangesAsync(ct);
     }
+
+    public async Task<bool> IsInUseAsync(Guid id, CancellationToken ct = default)
+        => await db.RecipeIngredients.AnyAsync(ri => ri.IngredientId == id, ct);
 
     public async Task DeleteAsync(Ingredient ingredient, CancellationToken ct = default)
     {

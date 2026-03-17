@@ -84,10 +84,18 @@
                     }
                 </MudTd>
                 <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" Color="Color.Primary"
-                                   OnClick="() => OpenEditDialog(context)" />
-                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
-                                   OnClick="() => ConfirmDelete(context)" />
+                    <MudTooltip Text="Bewerken">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Edit" Size="Size.Small" Color="Color.Primary"
+                                       OnClick="() => OpenEditDialog(context)" />
+                    </MudTooltip>
+                    <MudTooltip Text="Archiveren">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Archive" Size="Size.Small" Color="Color.Warning"
+                                       OnClick="() => ConfirmArchive(context)" />
+                    </MudTooltip>
+                    <MudTooltip Text="Verwijderen">
+                        <MudIconButton Icon="@Icons.Material.Rounded.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="() => ConfirmDelete(context)" />
+                    </MudTooltip>
                 </MudTd>
             </RowTemplate>
             <PagerContent>
@@ -273,6 +281,30 @@
                 await LoadData();
             else
                 _errorMessage = deleteResult.Error;
+        }
+    }
+
+    private async Task ConfirmArchive(IngredientDto ingredient)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Weet je zeker dat je het ingrediënt \"{ingredient.Title}\" wilt archiveren?" },
+            { x => x.ConfirmText, "Archiveren" },
+            { x => x.ConfirmColor, Color.Warning }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Ingrediënt archiveren", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            _errorMessage = null;
+            var archiveResult = await IngredientService.ArchiveAsync(ingredient.Id);
+            if (archiveResult.IsSuccess)
+                await LoadData();
+            else
+                _errorMessage = archiveResult.Error;
         }
     }
 
